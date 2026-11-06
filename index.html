@@ -4,39 +4,142 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <meta name="description" content="Toolkit PWA modulare per preparare progetti, debug e pacchetti di lavoro per ChatGPT." />
+  <meta name="description" content="Toolkit PWA modulare che prepara progetti, debug, controlli e pacchetti di lavoro per ChatGPT." />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="stylesheet" href="./assets/app.css" />
   <title>Jorrob Toolkit</title>
 </head>
 <body>
   <header class="topbar">
-    <div><div class="eyebrow">JORROB DEV SYSTEM</div><h1>Toolkit</h1></div>
-    <button id="installBtn" class="secondary" hidden>Installa</button>
+    <div>
+      <div class="eyebrow">JORROB DEV SYSTEM</div>
+      <h1>Toolkit <span class="version">v0.2.0</span></h1>
+    </div>
+    <div class="top-actions">
+      <span class="status-pill" id="appStatus">Offline-ready</span>
+      <button id="installBtn" class="secondary compact" hidden>Installa</button>
+    </div>
   </header>
+
   <main>
     <section class="hero card">
-      <div><h2>Prepara il lavoro. Poi lascia a ChatGPT la parte difficile.</h2><p>Analizza un progetto, individua problemi PWA, raccogli errori e genera un pacchetto standard pronto da condividere in chat.</p></div>
-      <div class="status-pill" id="appStatus">Offline-ready</div>
-    </section>
-    <nav class="tabs" aria-label="Strumenti">
-      <button class="tab active" data-view="hub">Hub</button><button class="tab" data-view="scanner">Scanner</button><button class="tab" data-view="debug">Debug</button><button class="tab" data-view="doctor">PWA Doctor</button><button class="tab" data-view="pack">ChatGPT Pack</button>
-    </nav>
-    <section id="view-hub" class="view active">
-      <div class="grid">
-        <button class="tool-card" data-open="scanner"><span>01</span><strong>Project Scanner</strong><small>Legge i file e crea una fotografia tecnica del progetto.</small></button>
-        <button class="tool-card" data-open="debug"><span>02</span><strong>Debug / Test</strong><small>Trasforma log e sintomi in un report strutturato.</small></button>
-        <button class="tool-card" data-open="doctor"><span>03</span><strong>PWA Doctor</strong><small>Controlla manifest, service worker, cache e versioni.</small></button>
-        <button class="tool-card" data-open="pack"><span>04</span><strong>ChatGPT Pack</strong><small>Raccoglie tutto in un unico pacchetto da passare a ChatGPT.</small></button>
+      <div>
+        <div class="eyebrow">WORKSPACE CENTRALE</div>
+        <h2 id="heroTitle">Prepara il lavoro. ChatGPT parte già dal punto giusto.</h2>
+        <p id="heroSubtitle">Stato progetto, analisi, debug, controlli PWA e pacchetto finale restano collegati nello stesso workspace.</p>
       </div>
-      <article class="card roadmap"><h3>Architettura</h3><p>Ogni modulo scrive nello stesso stato del progetto, così nuovi strumenti possono essere aggiunti senza cambiare il formato.</p><pre>Project → Scanner → Debug/Test → PWA Doctor → ChatGPT Pack → ChatGPT</pre></article>
+      <div class="hero-actions">
+        <button data-open="workspace">Apri progetto</button>
+        <button data-open="pack" class="secondary">Prepara per ChatGPT</button>
+      </div>
     </section>
-    <section id="view-scanner" class="view"><article class="card"><h2>Project Scanner</h2><p>Seleziona i file del progetto. L'analisi resta nel browser.</p><label class="dropzone"><input id="projectFiles" type="file" multiple /><strong>Scegli file</strong><span>HTML, JS, CSS, JSON, manifest, log, test e altri file testuali.</span></label><div class="actions"><button id="scanBtn">Analizza progetto</button><button id="clearScan" class="secondary">Azzera</button></div><div id="scanResults" class="results empty">Nessuna analisi eseguita.</div></article></section>
-    <section id="view-debug" class="view"><article class="card"><h2>Debug / Test Pack</h2><div class="form-grid"><label>Problema osservato<textarea id="problemInput" rows="4"></textarea></label><label>Log / console / errori<textarea id="logsInput" rows="10"></textarea></label><label>Comportamento atteso<textarea id="expectedInput" rows="3"></textarea></label></div><div class="actions"><button id="debugBtn">Analizza errori</button></div><div id="debugResults" class="results empty">Nessun debug eseguito.</div></article></section>
-    <section id="view-doctor" class="view"><article class="card"><h2>PWA Doctor</h2><p>Usa i file caricati nello Scanner e cerca errori tipici che possono rendere gli aggiornamenti incoerenti.</p><div class="actions"><button id="doctorBtn">Esegui controllo PWA</button></div><div id="doctorResults" class="results empty">Carica prima i file del progetto nello Scanner.</div></article></section>
-    <section id="view-pack" class="view"><article class="card"><h2>ChatGPT Pack</h2><label>Nome progetto<input id="projectName" type="text" placeholder="Es. DocFix" /></label><label>Versione<input id="projectVersion" type="text" /></label><label>Obiettivo<textarea id="goalInput" rows="3"></textarea></label><label>Cose approvate da non rompere<textarea id="lockedInput" rows="4"></textarea></label><div class="actions"><button id="packBtn">Genera pacchetto</button><button id="downloadJson" class="secondary" disabled>Scarica JSON</button><button id="downloadMd" class="secondary" disabled>Scarica Markdown</button></div><div id="packResults" class="results empty">Il pacchetto unirà Scanner, Debug e PWA Doctor.</div></article></section>
+
+    <section class="summary-grid" id="summaryGrid">
+      <article class="summary-card"><span>PROGETTO</span><strong id="summaryProject">Nessuno</strong><small id="summaryVersion">—</small></article>
+      <article class="summary-card"><span>SCANNER</span><strong id="summaryScan">Non eseguito</strong><small id="summaryScanSub">0 file</small></article>
+      <article class="summary-card"><span>DEBUG</span><strong id="summaryDebug">Non eseguito</strong><small id="summaryDebugSub">0 segnalazioni</small></article>
+      <article class="summary-card"><span>PWA DOCTOR</span><strong id="summaryDoctor">Non eseguito</strong><small id="summaryDoctorSub">0 problemi</small></article>
+    </section>
+
+    <nav class="tabs" aria-label="Strumenti">
+      <button class="tab active" data-view="hub">Hub</button>
+      <button class="tab" data-view="workspace">Workspace</button>
+      <button class="tab" data-view="scanner">Scanner</button>
+      <button class="tab" data-view="debug">Debug</button>
+      <button class="tab" data-view="doctor">PWA Doctor</button>
+      <button class="tab" data-view="pack">ChatGPT Pack</button>
+    </nav>
+
+    <section id="view-hub" class="view active">
+      <div class="grid" id="moduleGrid">
+        <button class="tool-card" data-open="workspace"><span>00 · CORE</span><strong>Project Workspace</strong><small>Memoria locale del progetto, obiettivo, versione e funzioni da non rompere.</small></button>
+        <button class="tool-card" data-open="scanner"><span>01 · ANALISI</span><strong>Project Scanner</strong><small>Riconosce struttura, framework, test, versioni, TODO e segnali di rischio.</small></button>
+        <button class="tool-card" data-open="debug"><span>02 · DIAGNOSI</span><strong>Debug / Test Pack</strong><small>Trasforma sintomi e log in categorie, ipotesi e prossime verifiche.</small></button>
+        <button class="tool-card" data-open="doctor"><span>03 · PWA</span><strong>PWA Doctor</strong><small>Controlla manifest, service worker, cache, versioni e aggiornamenti.</small></button>
+        <button class="tool-card" data-open="pack"><span>04 · HANDOFF</span><strong>ChatGPT Pack</strong><small>Genera un handoff standard da copiare o scaricare e usare direttamente in chat.</small></button>
+        <article class="tool-card planned"><span>PROSSIMO</span><strong>Replica / Project Planner</strong><small>Da idea, sito, video o file di riferimento → piano di progetto e strumenti da attivare.</small></article>
+      </div>
+      <article class="card roadmap">
+        <div class="section-head"><div><div class="eyebrow">ARCHITETTURA</div><h3>Un solo stato, molti strumenti</h3></div><span class="chip">schema v2</span></div>
+        <p>Ogni modulo legge e aggiorna lo stesso workspace. I futuri strumenti potranno essere PWA separate o moduli dell'Hub, ma useranno lo stesso contratto dati.</p>
+        <pre>Idea → Workspace → Scanner / Debug / Doctor → ChatGPT Pack → ChatGPT → nuovi strumenti</pre>
+        <div id="moduleRegistry" class="module-registry"></div>
+      </article>
+    </section>
+
+    <section id="view-workspace" class="view">
+      <article class="card">
+        <div class="section-head"><div><div class="eyebrow">MEMORIA PROGETTO</div><h2>Workspace</h2></div><span class="autosave" id="autosaveState">Salvataggio locale attivo</span></div>
+        <div class="form-grid two-col">
+          <label>Nome progetto<input id="projectName" type="text" placeholder="Es. DocFix" autocomplete="off" /></label>
+          <label>Versione<input id="projectVersion" type="text" placeholder="Es. 1.9.19" autocomplete="off" /></label>
+        </div>
+        <label>Obiettivo attuale<textarea id="goalInput" rows="4" placeholder="Cosa deve essere ottenuto in questa iterazione?"></textarea></label>
+        <label>Funzioni approvate da non rompere<textarea id="lockedInput" rows="5" placeholder="Una voce per riga"></textarea></label>
+        <label>Note / decisioni già prese<textarea id="notesInput" rows="6" placeholder="Scelte tecniche, vincoli, cose già provate, dipendenze importanti..."></textarea></label>
+        <div class="actions">
+          <button id="saveWorkspaceBtn">Salva workspace</button>
+          <button id="exportStateBtn" class="secondary">Esporta stato</button>
+          <label class="button-like secondary">Importa stato<input id="importStateInput" type="file" accept="application/json,.json" hidden /></label>
+          <button id="resetWorkspaceBtn" class="danger-ghost">Azzera workspace</button>
+        </div>
+        <div id="workspaceResults" class="results empty">Lo stato viene salvato automaticamente su questo dispositivo.</div>
+      </article>
+    </section>
+
+    <section id="view-scanner" class="view">
+      <article class="card">
+        <div class="section-head"><div><div class="eyebrow">ANALISI TECNICA</div><h2>Project Scanner</h2></div><span class="chip">locale</span></div>
+        <p>Puoi selezionare singoli file, una cartella intera oppure trascinare il progetto. I contenuti restano nel browser.</p>
+        <div class="picker-row">
+          <label class="button-like">Scegli file<input id="projectFiles" type="file" multiple hidden /></label>
+          <label class="button-like secondary">Scegli cartella<input id="projectFolder" type="file" webkitdirectory directory multiple hidden /></label>
+        </div>
+        <div id="dropZone" class="dropzone" tabindex="0"><strong>Trascina qui i file del progetto</strong><span>HTML, JS/TS, CSS, JSON, manifest, package.json, log, test, Markdown e configurazioni.</span></div>
+        <div class="actions"><button id="scanBtn">Analizza progetto</button><button id="clearScan" class="secondary">Azzera analisi</button></div>
+        <div id="selectedFilesInfo" class="microcopy">Nessun file selezionato.</div>
+        <div id="scanResults" class="results empty">Nessuna analisi eseguita.</div>
+      </article>
+    </section>
+
+    <section id="view-debug" class="view">
+      <article class="card">
+        <div class="section-head"><div><div class="eyebrow">DIAGNOSI</div><h2>Debug / Test Pack</h2></div><span class="chip">pattern + contesto</span></div>
+        <div class="form-grid">
+          <label>Problema osservato<textarea id="problemInput" rows="4" placeholder="Es. l'anteprima non si aggiorna dopo il salvataggio"></textarea></label>
+          <label>Log / console / errori<textarea id="logsInput" rows="10" placeholder="Incolla qui console, errori di test o messaggi di runtime"></textarea></label>
+          <label>Comportamento atteso<textarea id="expectedInput" rows="3" placeholder="Cosa dovrebbe succedere?"></textarea></label>
+        </div>
+        <div class="actions"><button id="debugBtn">Analizza errori</button><button id="clearDebugBtn" class="secondary">Azzera debug</button></div>
+        <div id="debugResults" class="results empty">Nessun debug eseguito.</div>
+      </article>
+    </section>
+
+    <section id="view-doctor" class="view">
+      <article class="card">
+        <div class="section-head"><div><div class="eyebrow">STABILITÀ PWA</div><h2>PWA Doctor</h2></div><span class="chip">aggiornamenti</span></div>
+        <p>Usa i file caricati nello Scanner e verifica i problemi che più spesso causano versioni non aggiornate, cache incoerenti o installazioni strane.</p>
+        <div class="actions"><button id="doctorBtn">Esegui controllo PWA</button></div>
+        <div id="doctorResults" class="results empty">Carica prima i file del progetto nello Scanner.</div>
+      </article>
+    </section>
+
+    <section id="view-pack" class="view">
+      <article class="card">
+        <div class="section-head"><div><div class="eyebrow">HANDOFF</div><h2>ChatGPT Pack</h2></div><span class="chip">jorrob-chatgpt-pack/v2</span></div>
+        <p>Unisce lo stato del progetto alle analisi disponibili. Il pacchetto contiene sintesi e diagnosi, non i contenuti completi dei file caricati.</p>
+        <div class="actions">
+          <button id="packBtn">Genera pacchetto</button>
+          <button id="copyMdBtn" class="secondary" disabled>Copia per ChatGPT</button>
+          <button id="downloadJson" class="secondary" disabled>Scarica JSON</button>
+          <button id="downloadMd" class="secondary" disabled>Scarica Markdown</button>
+        </div>
+        <div id="packResults" class="results empty">Esegui almeno Workspace + uno degli strumenti di analisi per ottenere un handoff utile.</div>
+      </article>
+    </section>
   </main>
-  <footer>Jorrob Toolkit · MVP 0.1.0 · dati elaborati localmente nel browser</footer>
+
+  <footer>Jorrob Toolkit · v0.2.0 · stato persistente locale · nessun file inviato automaticamente</footer>
   <script src="./assets/app.js" defer></script>
 </body>
 </html>

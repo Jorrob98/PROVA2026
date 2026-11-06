@@ -8,14 +8,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Static checks
         shell: bash
         run: |
           test -f index.html
           test -f manifest.webmanifest
+          test -f modules.json
           test -f sw.js
+          test -f assets/app.js
           grep -q 'manifest.webmanifest' index.html
+          grep -q 'jorrob-toolkit-v0.2.0' sw.js
           grep -q 'skipWaiting' sw.js
           grep -q 'clients.claim' sw.js
           python -m json.tool manifest.webmanifest >/dev/null
-          echo "Toolkit static validation passed"
+          python -m json.tool modules.json >/dev/null
+          node --check assets/app.js
+          echo "Toolkit v0.2.0 validation passed"

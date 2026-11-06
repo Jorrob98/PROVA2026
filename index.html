@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="description" content="Toolkit PWA modulare per preparare progetti, debug e pacchetti di lavoro per ChatGPT." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./assets/app.css" />
+  <title>Jorrob Toolkit</title>
+</head>
+<body>
+  <header class="topbar">
+    <div><div class="eyebrow">JORROB DEV SYSTEM</div><h1>Toolkit</h1></div>
+    <button id="installBtn" class="secondary" hidden>Installa</button>
+  </header>
+  <main>
+    <section class="hero card">
+      <div><h2>Prepara il lavoro. Poi lascia a ChatGPT la parte difficile.</h2><p>Analizza un progetto, individua problemi PWA, raccogli errori e genera un pacchetto standard pronto da condividere in chat.</p></div>
+      <div class="status-pill" id="appStatus">Offline-ready</div>
+    </section>
+    <nav class="tabs" aria-label="Strumenti">
+      <button class="tab active" data-view="hub">Hub</button><button class="tab" data-view="scanner">Scanner</button><button class="tab" data-view="debug">Debug</button><button class="tab" data-view="doctor">PWA Doctor</button><button class="tab" data-view="pack">ChatGPT Pack</button>
+    </nav>
+    <section id="view-hub" class="view active">
+      <div class="grid">
+        <button class="tool-card" data-open="scanner"><span>01</span><strong>Project Scanner</strong><small>Legge i file e crea una fotografia tecnica del progetto.</small></button>
+        <button class="tool-card" data-open="debug"><span>02</span><strong>Debug / Test</strong><small>Trasforma log e sintomi in un report strutturato.</small></button>
+        <button class="tool-card" data-open="doctor"><span>03</span><strong>PWA Doctor</strong><small>Controlla manifest, service worker, cache e versioni.</small></button>
+        <button class="tool-card" data-open="pack"><span>04</span><strong>ChatGPT Pack</strong><small>Raccoglie tutto in un unico pacchetto da passare a ChatGPT.</small></button>
+      </div>
+      <article class="card roadmap"><h3>Architettura</h3><p>Ogni modulo scrive nello stesso stato del progetto, così nuovi strumenti possono essere aggiunti senza cambiare il formato.</p><pre>Project → Scanner → Debug/Test → PWA Doctor → ChatGPT Pack → ChatGPT</pre></article>
+    </section>
+    <section id="view-scanner" class="view"><article class="card"><h2>Project Scanner</h2><p>Seleziona i file del progetto. L'analisi resta nel browser.</p><label class="dropzone"><input id="projectFiles" type="file" multiple /><strong>Scegli file</strong><span>HTML, JS, CSS, JSON, manifest, log, test e altri file testuali.</span></label><div class="actions"><button id="scanBtn">Analizza progetto</button><button id="clearScan" class="secondary">Azzera</button></div><div id="scanResults" class="results empty">Nessuna analisi eseguita.</div></article></section>
+    <section id="view-debug" class="view"><article class="card"><h2>Debug / Test Pack</h2><div class="form-grid"><label>Problema osservato<textarea id="problemInput" rows="4"></textarea></label><label>Log / console / errori<textarea id="logsInput" rows="10"></textarea></label><label>Comportamento atteso<textarea id="expectedInput" rows="3"></textarea></label></div><div class="actions"><button id="debugBtn">Analizza errori</button></div><div id="debugResults" class="results empty">Nessun debug eseguito.</div></article></section>
+    <section id="view-doctor" class="view"><article class="card"><h2>PWA Doctor</h2><p>Usa i file caricati nello Scanner e cerca errori tipici che possono rendere gli aggiornamenti incoerenti.</p><div class="actions"><button id="doctorBtn">Esegui controllo PWA</button></div><div id="doctorResults" class="results empty">Carica prima i file del progetto nello Scanner.</div></article></section>
+    <section id="view-pack" class="view"><article class="card"><h2>ChatGPT Pack</h2><label>Nome progetto<input id="projectName" type="text" placeholder="Es. DocFix" /></label><label>Versione<input id="projectVersion" type="text" /></label><label>Obiettivo<textarea id="goalInput" rows="3"></textarea></label><label>Cose approvate da non rompere<textarea id="lockedInput" rows="4"></textarea></label><div class="actions"><button id="packBtn">Genera pacchetto</button><button id="downloadJson" class="secondary" disabled>Scarica JSON</button><button id="downloadMd" class="secondary" disabled>Scarica Markdown</button></div><div id="packResults" class="results empty">Il pacchetto unirà Scanner, Debug e PWA Doctor.</div></article></section>
+  </main>
+  <footer>Jorrob Toolkit · MVP 0.1.0 · dati elaborati localmente nel browser</footer>
+  <script src="./assets/app.js" defer></script>
+</body>
+</html>

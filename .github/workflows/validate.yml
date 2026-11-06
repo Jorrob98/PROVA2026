@@ -1,0 +1,21 @@
+name: Validate Toolkit
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static checks
+        shell: bash
+        run: |
+          test -f index.html
+          test -f manifest.webmanifest
+          test -f sw.js
+          grep -q 'manifest.webmanifest' index.html
+          grep -q 'skipWaiting' sw.js
+          grep -q 'clients.claim' sw.js
+          python -m json.tool manifest.webmanifest >/dev/null
+          echo "Toolkit static validation passed"

@@ -1,0 +1,13 @@
+{
+  "schema": "jorrob-toolkit-modules/v1",
+  "modules": [
+    {"id":"workspace","title":"Project Workspace","status":"ready","execution":"browser","output":"project-state/v2"},
+    {"id":"scanner","title":"Project Scanner","status":"ready","execution":"browser","output":"project-scan/v2"},
+    {"id":"debug","title":"Debug / Test Pack","status":"ready","execution":"browser","output":"debug-report/v2"},
+    {"id":"pwa-doctor","title":"PWA Doctor","status":"ready","execution":"browser","output":"pwa-doctor/v2"},
+    {"id":"chatgpt-pack","title":"ChatGPT Pack","status":"ready","execution":"browser","output":"jorrob-chatgpt-pack/v2"},
+    {"id":"replica","title":"Replica / Project Planner","status":"planned","execution":"hybrid","output":"project-plan/v1"},
+    {"id":"visual-diff","title":"Visual Diff","status":"planned","execution":"browser-actions","output":"visual-diff/v1"},
+    {"id":"test-runner","title":"Test Runner","status":"planned","execution":"github-actions","output":"test-report/v1"}
+  ]
+}

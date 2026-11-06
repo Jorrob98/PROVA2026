@@ -1,28 +1,36 @@
 # Jorrob Toolkit
 
-MVP di un ecosistema di strumenti PWA specializzati che preparano il lavoro tecnico per ChatGPT.
+Toolkit PWA modulare pensato per preparare il lavoro tecnico prima di passarlo a ChatGPT.
 
-Moduli inclusi:
-- Project Scanner
-- Debug / Test Pack
-- PWA Doctor
-- ChatGPT Pack
+## Versione
+0.2.0
 
-Principio:
-ChatGPT resta il cervello creativo e tecnico. Il toolkit automatizza raccolta, verifica, normalizzazione e impacchettamento delle informazioni ripetitive.
+## Cosa cambia rispetto all'MVP iniziale
+- Workspace persistente in `localStorage`
+- import/export dello stato progetto
+- Project Scanner con riconoscimento framework, `package.json`, script, test, TODO/FIXME e possibili credenziali esposte
+- Debug Pack con categorie e prossime verifiche
+- PWA Doctor più severo su manifest, service worker, cache e incoerenze di versione
+- ChatGPT Pack schema `jorrob-chatgpt-pack/v2`
+- copia diretta del Markdown per ChatGPT
+- registro moduli in `modules.json`, base per aggiungere nuove PWA/strumenti senza cambiare il contratto centrale
 
-GitHub Pages:
-Il progetto è statico e può essere pubblicato direttamente come PWA.
+## Principio architetturale
+ChatGPT resta il cervello creativo/tecnico. Ogni strumento specializzato produce un output standard che può essere riutilizzato dagli altri moduli o consegnato a ChatGPT.
 
-Schema output:
-- CHATGPT_PACK.json
-- CHATGPT_PACK.md
-- schema jorrob-chatgpt-pack/v1
+## Moduli attuali
+1. Project Workspace
+2. Project Scanner
+3. Debug / Test Pack
+4. PWA Doctor
+5. ChatGPT Pack
 
-Roadmap:
-1. Import ZIP / repository GitHub
-2. Visual Diff automatico
-3. Test runner via GitHub Actions
-4. OCR Bench / Image Bench
-5. Replica / Requirements Builder
-6. Orchestrator che seleziona gli strumenti in base al progetto
+## Prossimi moduli
+- Replica / Project Planner
+- Visual Diff
+- Test Runner via GitHub Actions
+- OCR Bench / Image Bench
+- Orchestrator
+
+## Privacy
+I file selezionati dallo Scanner vengono elaborati nel browser. Lo stato persistente contiene sintesi e metadati; i contenuti completi dei file non vengono salvati automaticamente.

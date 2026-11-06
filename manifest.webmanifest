@@ -1,7 +1,8 @@
 {
+  "id":"./",
   "name":"Jorrob Toolkit",
   "short_name":"Jorrob Dev",
-  "description":"Toolkit PWA modulare per preparare progetti e pacchetti di lavoro per ChatGPT.",
+  "description":"Toolkit PWA modulare che prepara progetti, debug, controlli e pacchetti di lavoro per ChatGPT.",
   "start_url":"./",
   "scope":"./",
   "display":"standalone",

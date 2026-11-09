@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0c1521">
-<title>Jorrob · Lettore GLB</title>
+<title>Jorrob · Isola 3D · GLB 501×501</title>
 <style>
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overflow:hidden;background:#0d1929;color:#eff7ff;font:14px/1.5 system-ui,-apple-system,Segoe UI,Arial,sans-serif}
@@ -31,11 +31,11 @@ body.drop #message{outline:2px dashed #5fc0ff;outline-offset:6px}
 <body>
 <div id="scene"></div>
 <div class="header">
- <div class="brand"><strong>Jorrob · Lettore GLB</strong><small id="modelName">isola_colori_400x400.glb</small></div>
+ <div class="brand"><strong>Jorrob · Isola 3D</strong><small id="modelName">isola_colori_500x500_dettagli_fondali.glb</small></div>
  <div class="toolbar"><button id="choose">Apri modello GLB</button><button class="secondary" id="reset" disabled>Reimposta vista</button></div>
 </div>
-<input id="file" type="file" accept=".glb,model/gltf-binary">
-<div id="center"><div id="message"><h2>Visualizza la tua isola in 3D</h2><p id="hint">Seleziona il file GLB una sola volta. Il browser lo conserverà localmente per riaprirlo automaticamente nelle visite successive.</p><button id="select">Seleziona il GLB</button></div></div>
+<input id="file" type="file" accept=".glb,.gz,model/gltf-binary,application/gzip">
+<div id="center"><div id="message"><h2>Visualizza la tua isola in 3D</h2><p id="hint">Il modello 501×501 verrà caricato automaticamente quando il file sarà pubblicato. Puoi anche aprire manualmente il GLB o la versione compressa .gz.</p><button id="select">Seleziona il GLB</button></div></div>
 <div id="status">In attesa del modello · trascina per ruotare · rotella o pinch per zoom</div>
 <script>
 window.addEventListener('error',e=>{let s=document.getElementById('status');if(s)s.textContent='Errore: '+(e.message||'caricamento 3D non riuscito')});
@@ -47,6 +47,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const $=id=>document.getElementById(id);
 let renderer,scene,camera,controls,current=null,defaultPosition=null,defaultTarget=null,busy=false;
+const MODEL_NAME="isola_colori_500x500_dettagli_fondali.glb";
 const loader=new GLTFLoader();
 function status(message){$('status').textContent=message}
 function showPrompt(title,detail){
@@ -90,9 +91,17 @@ async function display(blob,name,save=true){
  $('modelName').textContent=name;
  try{
   if(blob.size<20||blob.size>500*1024*1024)throw Error('Il file non è un GLB valido o è troppo grande.');
-  const data=await blob.arrayBuffer();
+  let data;
+  if(name.toLowerCase().endsWith('.gz')){
+    if(typeof DecompressionStream!=='function') throw Error('Questo browser non supporta i file GZIP. Usa Chrome recente o carica il GLB.');
+    status('Decomprimo il modello originale senza modifiche…');
+    const decompressed=new Response(blob.stream().pipeThrough(new DecompressionStream('gzip')));
+    data=await decompressed.arrayBuffer();
+    name=name.replace(/\.gz$/i,'');
+    $('modelName').textContent=name;
+  } else data=await blob.arrayBuffer();
   const view=new DataView(data);
-  if(view.getUint32(0,true)!==0x46546c67||view.getUint32(4,true)!==2)throw Error('Il file non è in formato GLB 2.0.');
+  if(view.getUint32(0,true)!==0x46546c67||view.getUint32(4,true)!==2||view.getUint32(8,true)!==data.byteLength)throw Error('Il file non è un GLB 2.0 valido o è incompleto.');
   init();
   status('Caricamento geometria e materiali…');
   const gltf=await loader.parseAsync(data,'');
@@ -112,7 +121,7 @@ async function display(blob,name,save=true){
   resetView();
   controls.minDistance=Math.max(.5,radius*.02);controls.maxDistance=Math.max(100,distance*4);
   $('center').style.display='none';$('reset').disabled=false;
-  status(name+' · modello caricato · trascina per ruotare · zoom con rotella/pinch');
+  status(name+' · visualizzazione del GLB senza alterazioni · trascina per ruotare · zoom con rotella/pinch');
   if(save)saveModel(blob,name).catch(e=>status(name+' · modello caricato (salvataggio locale non disponibile)'));
  }catch(e){console.error(e);status('Errore di caricamento: '+(e.message||String(e)));showPrompt('Non riesco ad aprire il GLB','Controlla che sia un file .glb valido, poi riprova.')}
  finally{busy=false}
@@ -153,19 +162,22 @@ async function cachedModel(){
  })
 }
 (async()=>{
+ // Dai precedenza al modello ospitato sul sito: una vecchia cache non deve sovrascriverlo.
  try{
-  const saved=await cachedModel();
-  if(saved?.blob){await display(saved.blob,saved.name||'isola_colori_400x400.glb',false);return}
- }catch(e){console.warn('Cache locale non disponibile',e)}
- // If the model is added to this GitHub Pages folder, load automatically.
- try{
-  const response=await fetch('./isola_colori_400x400.glb',{cache:'no-cache'});
+  status('Controllo il modello 501×501 pubblicato sul sito…');
+  const response=await fetch('./'+MODEL_NAME,{cache:'no-store'});
   if(response.ok){
    const blob=await response.blob();
-   if(blob.size>20){await display(blob,'isola_colori_400x400.glb',true);return}
+   if(blob.size>1000){await display(blob,MODEL_NAME,false);return;}
   }
- }catch(e){console.warn('Modello non pubblicato nel repository',e)}
- status('Seleziona il tuo file GLB per visualizzarlo. Verrà ricordato su questo dispositivo.')
+ }catch(e){console.warn('Modello non ancora pubblicato',e)}
+ try{
+  const saved=await cachedModel();
+  if(saved?.blob && (saved.name===MODEL_NAME||saved.name===MODEL_NAME+'.gz')){
+   await display(saved.blob,saved.name,false);return;
+  }
+ }catch(e){console.warn('Cache locale non disponibile',e)}
+ status('GLB 501×501 non ancora pubblicato: seleziona il file .glb o .gz per aprirlo.');
 })();
 </script>
 </body>

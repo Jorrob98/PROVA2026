@@ -10,7 +10,13 @@
 [hidden]{display:none!important}
 html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#edf6ff;background:#0a121f}
 #app{position:fixed;inset:0;background:linear-gradient(155deg,#122337,#08111b)}
-#app canvas{display:block;width:100%;height:100%;touch-action:none}
+#app canvas{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-index:3}
+#seedFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#081726}
+#seedFallback{position:fixed;z-index:4;right:12px;top:12px;background:#091929eb;border:1px solid #507390;border-radius:12px;padding:12px;max-width:280px;font-size:12px;box-shadow:0 8px 28px #0008;line-height:1.5}
+#seedFallback a{display:inline-block;margin-top:8px;text-decoration:none;background:#247fae;border-radius:8px;padding:8px 11px;color:white;font-weight:bold}
+details.import{margin:10px 0;border:1px solid #344d68;border-radius:10px;padding:8px 10px;background:#13243a}
+details.import>summary{font-size:12px;font-weight:700;cursor:pointer;color:#d6efff}
+@media(max-width:700px){#seedFallback{top:auto;bottom:65px;right:8px;left:8px;max-width:none;font-size:11px}header{max-height:42vh}}
 header{position:fixed;z-index:4;top:12px;left:12px;max-height:calc(100vh - 24px);overflow-y:auto;width:min(400px,calc(100% - 24px));background:rgba(9,18,30,.94);border:1px solid #37516b;border-radius:16px;padding:15px;box-shadow:0 15px 50px #0008}
 header h1{margin:0;font-size:18px}
 .sub{font-size:12px;color:#afc2d4;line-height:1.5;margin:4px 0 12px}
@@ -38,20 +44,22 @@ a{color:#87ccff}
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"}}</script>
 </head>
 <body>
-<div id="app"></div>
-<div id="empty"><div><h2>Il tuo mondo, non una simulazione</h2><p>La precedente isola era inventata ed è stata rimossa. Carica il salvataggio Bedrock per estrarre la forma reale del terreno. In alternativa puoi esplorare il seed in 3D su SeedMapView.</p></div></div>
+<div id="app"><iframe id="seedFrame" title="Mappa Minecraft Bedrock 3D generata dal seed" src="https://seedmapview.com/it/?seed=-88920646104716782&amp;edition=bedrock&amp;x=-2120&amp;z=866&amp;view=3d" loading="eager" referrerpolicy="no-referrer"></iframe></div>
+<div id="seedFallback">Visualizzazione 3D dal seed Bedrock. Se la mappa non appare qui o il browser ne blocca l'integrazione, aprila direttamente.<br><a href="https://seedmapview.com/it/?seed=-88920646104716782&amp;edition=bedrock&amp;x=-2120&amp;z=866&amp;view=3d" target="_blank" rel="noopener">Apri il terreno 3D completo</a></div>
+<div id="empty" style="display:none"></div>
 <header>
-<h1>Jorrob · Isola Minecraft 3D</h1>
+<h1>Jorrob · Isola Minecraft 3D <span style="font-size:11px;color:#87d5ff">2.0</span></h1>
 <div class="sub">Bedrock · Seed <b>-88920646104716782</b><br>Base <b>X -2087, Z 968</b> · centro area <b>X -2120, Z 866</b> · <b>401 × 401</b> blocchi</div>
-<label for="worldfile"><b>1. Carica il mondo originale</b></label>
+<div style="font-size:12px;color:#a5f0d1;margin:10px 0">Modalità iniziale: terreno generato dal seed. Nessun file obbligatorio.</div>
+<details class="import" id="importbox"><summary>Importa mondo salvato (opzionale)</summary><label for="worldfile"><b>Seleziona il file .mcworld o ZIP originale</b></label>
 <input id="worldfile" type="file" accept=".mcworld,.zip,application/zip">
-<small>Su iPhone: File → Sul mio iPhone → Minecraft → games → com.mojang → minecraftWorlds. Tieni premuta la cartella del mondo e scegli “Comprimi”, poi seleziona qui lo ZIP. Il file viene letto nel browser, non caricato sul nostro server.</small>
+<small>Su iPhone: File → Sul mio iPhone → Minecraft → games → com.mojang → minecraftWorlds. Tieni premuta la cartella del mondo e scegli “Comprimi”, poi seleziona qui lo ZIP. Il file viene letto nel browser, non caricato sul nostro server.</small></details>
 <div class="actions">
 <button id="seedBtn">Copia seed</button>
 <button id="coordBtn">Copia coordinate</button>
-<a class="btn primary" id="external" href="https://seedmapview.com/it/" target="_blank" rel="noopener noreferrer">Mappa seed 3D reale ↗</a>
+<a class="btn primary" id="external" href="https://seedmapview.com/it/?seed=-88920646104716782&amp;edition=bedrock&amp;x=-2120&amp;z=866&amp;view=3d" target="_blank" rel="noopener noreferrer">Apri la mappa 3D ↗</a><button id="backSeed" style="display:none">Torna alla mappa seed</button>
 </div>
-<div id="progress">Nessun mondo importato. Non verrà mostrato terreno inventato.</div>
+<div id="progress">La mappa qui accanto usa un generatore esterno del terreno da seed. Se non si apre, usa il pulsante “Apri la mappa 3D”. Imposta Bedrock e verifica la versione del tuo mondo.</div>
 <div id="meta"></div>
 <div class="tools" id="controls" hidden>
 <button id="home">Vista isola</button>
@@ -59,7 +67,7 @@ a{color:#87ccff}
 <button id="water">Acqua ON</button>
 <button id="grid">Griglia OFF</button>
 </div>
-<div class="sub" style="margin-top:12px">La visualizzazione dal salvataggio riproduce le <b>altezze reali della superficie, a risoluzione di un blocco</b>. I colori del suolo sono indicativi; grotte, costruzioni e singole texture non sono ancora riprodotti. Le parti del mondo non salvate restano vuote, senza riempimenti fittizi.</div>
+<div class="sub" style="margin-top:12px">L’importazione opzionale dal salvataggio riproduce le <b>altezze reali della superficie, a risoluzione di un blocco</b>. I colori del suolo sono indicativi; grotte, costruzioni e singole texture non sono ancora riprodotti. Le parti del mondo non salvate restano vuote, senza riempimenti fittizi.</div>
 </header>
 <div id="marker">Trascina per ruotare · rotella o pinch per zoom</div>
 <div id="legend">Terreno importato dal salvataggio · superficie a blocchi · colori indicativi</div>
@@ -98,6 +106,7 @@ function init3D(){
 function viewHome(){if(!camera)return;camera.position.set(730,390,730);controls.target.set(R,70,R);controls.update()}
 function viewTop(){if(!camera)return;camera.position.set(R,720,R+.01);controls.target.set(R,70,R);controls.update()}
 el('home').onclick=viewHome;el('top').onclick=viewTop;
+el('backSeed').onclick=()=>{el('seedFrame').style.display='block';el('seedFallback').style.display='block';if(renderer)renderer.domElement.style.display='none';el('backSeed').style.display='none';el('legend').style.display='none';el('controls').hidden=true;report('Modalità seed attiva. Visualizzazione esterna da Bedrock.','success')};
 el('water').onclick=e=>{if(!waterMesh)return;waterMesh.visible=!waterMesh.visible;e.target.textContent='Acqua '+(waterMesh.visible?'ON':'OFF')};
 el('grid').onclick=e=>{gridOn=!gridOn;if(terrain){terrain.material.wireframe=gridOn;terrain.material.needsUpdate=true}e.target.textContent='Griglia '+(gridOn?'ON':'OFF')};
 function chunkKey(x,z,type){
@@ -145,6 +154,8 @@ function colorAt(y){
 }
 function showTerrain(H){
  init3D();
+ el('seedFrame').style.display='none';el('seedFallback').style.display='none';
+ renderer.domElement.style.display='block';el('backSeed').style.display='inline-block';
  if(terrain){scene.remove(terrain);terrain.geometry.dispose();terrain.material.dispose()}
  if(waterMesh){scene.remove(waterMesh);waterMesh.geometry.dispose();waterMesh.material.dispose()}
  const verts=[],cols=[],color=new THREE.Color();

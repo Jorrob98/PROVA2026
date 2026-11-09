@@ -11,12 +11,8 @@
 html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#edf6ff;background:#0a121f}
 #app{position:fixed;inset:0;background:linear-gradient(155deg,#122337,#08111b)}
 #app canvas{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-index:3}
-#seedFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#081726}
-#seedFallback{position:fixed;z-index:4;right:12px;top:12px;background:#091929eb;border:1px solid #507390;border-radius:12px;padding:12px;max-width:280px;font-size:12px;box-shadow:0 8px 28px #0008;line-height:1.5}
-#seedFallback a{display:inline-block;margin-top:8px;text-decoration:none;background:#247fae;border-radius:8px;padding:8px 11px;color:white;font-weight:bold}
 details.import{margin:10px 0;border:1px solid #344d68;border-radius:10px;padding:8px 10px;background:#13243a}
 details.import>summary{font-size:12px;font-weight:700;cursor:pointer;color:#d6efff}
-@media(max-width:700px){#seedFallback{top:auto;bottom:65px;right:8px;left:8px;max-width:none;font-size:11px}header{max-height:42vh}}
 header{position:fixed;z-index:4;top:12px;left:12px;max-height:calc(100vh - 24px);overflow-y:auto;width:min(400px,calc(100% - 24px));background:rgba(9,18,30,.94);border:1px solid #37516b;border-radius:16px;padding:15px;box-shadow:0 15px 50px #0008}
 header h1{margin:0;font-size:18px}
 .sub{font-size:12px;color:#afc2d4;line-height:1.5;margin:4px 0 12px}
@@ -40,26 +36,48 @@ input[type=file]{width:100%;font-size:11px;color:#bbd3e8;margin:10px 0 4px}
 #legend{position:fixed;bottom:12px;left:12px;padding:9px 12px;background:#0a1728ee;border:1px solid #304b68;border-radius:10px;font-size:11px;display:none}
 a{color:#87ccff}
 @media(max-width:650px){header{top:8px;left:8px;max-height:58vh;width:calc(100% - 16px);padding:12px}#empty>div{margin-top:160px;padding:15px}#marker{font-size:10px;max-width:65%}}
+
+#seedFallback{position:fixed;z-index:2;top:50%;left:calc(400px + (100vw - 400px)/2);transform:translate(-50%,-50%);width:min(580px,calc(100vw - 445px));background:#102238;border:1px solid #446888;border-radius:20px;padding:27px;box-shadow:0 20px 70px #0008;line-height:1.55}
+#seedFallback h2{font-size:24px;margin:8px 0 10px}
+#seedFallback p{font-size:13px;color:#b9d3e6;margin:0 0 16px}
+#seedFallback a{display:block;width:100%;text-align:center;text-decoration:none;background:#2384bc;border-radius:10px;padding:12px 14px;color:white;font-weight:750;font-size:15px}
+#seedFallback a:hover{background:#319bd8}
+.gatewayEyebrow{font-size:10px;font-weight:800;color:#78d1ff;letter-spacing:1.1px}
+.gatewayValues{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:17px 0}
+.gatewayValues span{padding:11px;background:#0a1728;border:1px solid #334c66;border-radius:10px;font-size:11px;color:#b1c6d7}
+.gatewayValues strong{display:block;font-size:13px;color:white;margin-top:2px;overflow-wrap:anywhere}
+#seedFallback ol{padding-left:20px;font-size:12px;color:#bbd6eb;margin:10px 0}
+#seedFallback li{margin:5px 0}
+#marker{display:none}
+@media(max-width:800px){header{position:relative;top:8px;left:8px;width:calc(100% - 16px);max-height:none}#app{position:fixed}#seedFallback{position:relative;top:auto;left:auto;transform:none;width:calc(100% - 16px);margin:18px 8px 30px;padding:18px}body{overflow-y:auto;padding-bottom:20px}#marker{bottom:8px;right:8px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"}}</script>
 </head>
 <body>
-<div id="app"><iframe id="seedFrame" title="Mappa Minecraft Bedrock 3D generata dal seed" src="https://seedmapview.com/it/?seed=-88920646104716782&amp;edition=bedrock&amp;x=-2120&amp;z=866&amp;view=3d" loading="eager" referrerpolicy="no-referrer"></iframe></div>
-<div id="seedFallback">Visualizzazione 3D dal seed Bedrock. Se la mappa non appare qui o il browser ne blocca l'integrazione, aprila direttamente.<br><a href="https://seedmapview.com/it/?seed=-88920646104716782&amp;edition=bedrock&amp;x=-2120&amp;z=866&amp;view=3d" target="_blank" rel="noopener">Apri il terreno 3D completo</a></div>
+<div id="app"></div>
+<div id="seedFallback" role="region" aria-label="Mappa dal seed">
+ <div class="gatewayEyebrow">MINECRAFT BEDROCK · VISUALIZZAZIONE TERRENO</div>
+ <h2>Esplora la tua isola in 3D</h2>
+ <p>SeedMapView non consente la visualizzazione dentro questo sito. Aprilo in una nuova scheda: potrai esplorare il terreno generato dal seed, senza simulazioni inventate.</p>
+ <a href="https://seedmapview.com/it/" target="_blank" rel="noopener noreferrer">Apri SeedMapView in una nuova scheda ↗</a>
+ <div class="gatewayValues"><span>Seed<br><strong>-88920646104716782</strong></span><span>Centro area<br><strong>X -2120 · Z 866</strong></span></div>
+ <ol><li>Seleziona <b>Bedrock</b> e la versione del tuo mondo.</li><li>Inserisci il seed e premi <b>Vedi la mappa</b>.</li><li>Vai a X -2120 e Z 866, poi scegli <b>3D</b>.</li></ol>
+ <small>Per un modello interno al sito, importa il salvataggio del mondo nel pannello a sinistra.</small>
+ </div>
 <div id="empty" style="display:none"></div>
 <header>
-<h1>Jorrob · Isola Minecraft 3D <span style="font-size:11px;color:#87d5ff">2.0</span></h1>
+<h1>Jorrob · Isola Minecraft 3D <span style="font-size:11px;color:#87d5ff">2.1</span></h1>
 <div class="sub">Bedrock · Seed <b>-88920646104716782</b><br>Base <b>X -2087, Z 968</b> · centro area <b>X -2120, Z 866</b> · <b>401 × 401</b> blocchi</div>
-<div style="font-size:12px;color:#a5f0d1;margin:10px 0">Modalità iniziale: terreno generato dal seed. Nessun file obbligatorio.</div>
+<div style="font-size:12px;color:#a5f0d1;margin:10px 0">Per la visualizzazione dal seed, premi “Apri SeedMapView” nel pannello principale. Il modello interno richiede il salvataggio.</div>
 <details class="import" id="importbox"><summary>Importa mondo salvato (opzionale)</summary><label for="worldfile"><b>Seleziona il file .mcworld o ZIP originale</b></label>
 <input id="worldfile" type="file" accept=".mcworld,.zip,application/zip">
 <small>Da Minecraft Bedrock su Windows: Gioca → matita del mondo → Esporta mondo e seleziona qui il .mcworld. In alternativa puoi importare uno ZIP della cartella del mondo. Il file viene letto nel browser, non caricato sul nostro server.</small></details>
 <div class="actions">
 <button id="seedBtn">Copia seed</button>
 <button id="coordBtn">Copia coordinate</button>
-<a class="btn primary" id="external" href="https://seedmapview.com/it/?seed=-88920646104716782&amp;edition=bedrock&amp;x=-2120&amp;z=866&amp;view=3d" target="_blank" rel="noopener noreferrer">Apri la mappa 3D ↗</a><button id="backSeed" style="display:none">Torna alla mappa seed</button>
+<a class="btn primary" id="external" href="https://seedmapview.com/it/" target="_blank" rel="noopener noreferrer">Apri il sito 3D ↗</a><button id="backSeed" style="display:none">Torna alla mappa seed</button>
 </div>
-<div id="progress">La mappa qui accanto usa un generatore esterno del terreno da seed. Se non si apre, usa il pulsante “Apri la mappa 3D”. Imposta Bedrock e verifica la versione del tuo mondo.</div>
+<div id="progress">Non serve caricare file per esplorare il seed sul sito esterno. Se vuoi esplorare il rilievo del tuo salvataggio qui, seleziona un file .mcworld o ZIP.</div>
 <div id="meta"></div>
 <div class="tools" id="controls" hidden>
 <button id="home">Vista isola</button>
@@ -106,7 +124,7 @@ function init3D(){
 function viewHome(){if(!camera)return;camera.position.set(730,390,730);controls.target.set(R,70,R);controls.update()}
 function viewTop(){if(!camera)return;camera.position.set(R,720,R+.01);controls.target.set(R,70,R);controls.update()}
 el('home').onclick=viewHome;el('top').onclick=viewTop;
-el('backSeed').onclick=()=>{el('seedFrame').style.display='block';el('seedFallback').style.display='block';if(renderer)renderer.domElement.style.display='none';el('backSeed').style.display='none';el('legend').style.display='none';el('controls').hidden=true;report('Modalità seed attiva. Visualizzazione esterna da Bedrock.','success')};
+el('backSeed').onclick=()=>{el('seedFallback').style.display='block';position.style.display='none';if(renderer)renderer.domElement.style.display='none';el('backSeed').style.display='none';el('legend').style.display='none';el('controls').hidden=true;report('Modalità seed attiva. Visualizzazione esterna da Bedrock.','success')};
 el('water').onclick=e=>{if(!waterMesh)return;waterMesh.visible=!waterMesh.visible;e.target.textContent='Acqua '+(waterMesh.visible?'ON':'OFF')};
 el('grid').onclick=e=>{gridOn=!gridOn;if(terrain){terrain.material.wireframe=gridOn;terrain.material.needsUpdate=true}e.target.textContent='Griglia '+(gridOn?'ON':'OFF')};
 function chunkKey(x,z,type){
@@ -154,7 +172,7 @@ function colorAt(y){
 }
 function showTerrain(H){
  init3D();
- el('seedFrame').style.display='none';el('seedFallback').style.display='none';
+ el('seedFallback').style.display='none';position.style.display='block';
  renderer.domElement.style.display='block';el('backSeed').style.display='inline-block';
  if(terrain){scene.remove(terrain);terrain.geometry.dispose();terrain.material.dispose()}
  if(waterMesh){scene.remove(waterMesh);waterMesh.geometry.dispose();waterMesh.material.dispose()}

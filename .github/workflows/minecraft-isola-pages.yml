@@ -27,6 +27,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Prepare exact GLB from compressed file
+        shell: bash
+        run: |
+          python - <<'PY'
+          import gzip, hashlib, os, pathlib, struct
+          directory = pathlib.Path("minecraft-isola-3d")
+          gz = directory / "isola_colori_500x500_dettagli_fondali.glb.gz"
+          dst = directory / "isola_colori_500x500_dettagli_fondali.glb"
+          expected = "93ba93229f7435fd8deb42b7265af609caaf2effdb6d97e13279ff1f65e5d554"
+          if gz.exists():
+              with gzip.open(gz, "rb") as compressed, dst.open("wb") as out:
+                  while True:
+                      block = compressed.read(1024 * 1024)
+                      if not block:
+                          break
+                      out.write(block)
+              with dst.open("rb") as raw:
+                  header = raw.read(12)
+              if header[:4] != b"glTF" or struct.unpack("<I",header[8:12])[0] != dst.stat().st_size:
+                  raise SystemExit("ERRORE: GLB corrotto o incompleto")
+              with dst.open("rb") as raw:
+                  digest = hashlib.file_digest(raw, "sha256").hexdigest()
+              if digest != expected:
+                  raise SystemExit("ERRORE: Il GLB non corrisponde al modello originale verificato")
+              print("GLB verificato, dimensione:", dst.stat().st_size)
+          elif not dst.exists():
+              print("AVVISO: File GLB non ancora caricato. La pagina consente l'apertura manuale.")
+          PY
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

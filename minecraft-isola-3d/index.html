@@ -2,194 +2,205 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0b1726">
-<title>Jorrob Minecraft Base Planner</title>
+<title>Jorrob | Minecraft Isola 3D</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#a7cde8;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#f4f8fc}
-#app{position:fixed;inset:0}
-canvas{display:block;width:100%;height:100%}
-.panel{position:fixed;z-index:8;left:12px;top:12px;width:min(370px,calc(100vw - 24px));padding:13px;border-radius:15px;background:rgba(7,17,29,.88);backdrop-filter:blur(12px);border:1px solid rgba(126,194,255,.25);box-shadow:0 15px 45px rgba(0,0,0,.28)}
-h1{font-size:17px;margin:0 0 3px}.sub{font-size:12px;line-height:1.4;opacity:.82}.row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
-button{appearance:none;border:1px solid rgba(130,198,255,.28);background:#102a43;color:#fff;border-radius:9px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer}
-button:hover{background:#153752}
-.status{margin-top:9px;font-size:10px;opacity:.7;line-height:1.35}
-.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:9px;font-size:10px;opacity:.86}.leg{display:flex;align-items:center;gap:5px}.dot{width:9px;height:9px;border-radius:2px}
-.coord{position:fixed;z-index:8;right:12px;bottom:12px;padding:8px 10px;border-radius:9px;background:rgba(7,17,29,.83);border:1px solid rgba(126,194,255,.22);font-size:11px}
-#loading{position:fixed;z-index:20;inset:0;display:grid;place-items:center;background:#08111d;text-align:center;font-weight:750}
-#loading small{display:block;margin-top:7px;opacity:.65;font-weight:500}
-@media(max-width:650px){.panel{padding:10px}.coord{font-size:10px}}
+html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#edf6ff;background:#0a121f}
+#app{position:fixed;inset:0;background:linear-gradient(155deg,#122337,#08111b)}
+#app canvas{display:block;width:100%;height:100%;touch-action:none}
+header{position:fixed;z-index:4;top:12px;left:12px;max-height:calc(100vh - 24px);overflow-y:auto;width:min(400px,calc(100% - 24px));background:rgba(9,18,30,.94);border:1px solid #37516b;border-radius:16px;padding:15px;box-shadow:0 15px 50px #0008}
+header h1{margin:0;font-size:18px}
+.sub{font-size:12px;color:#afc2d4;line-height:1.5;margin:4px 0 12px}
+label{font-size:12px;color:#dbeafe}
+small{font-size:11px;line-height:1.4;color:#a6bed5}
+.tools,.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+button,.btn{display:inline-block;font-family:inherit;border:1px solid #47749c;background:#15385a;border-radius:9px;padding:9px 10px;color:#e5f5ff;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none}
+button:hover,.btn:hover{background:#23547d}
+button.primary,.btn.primary{background:#2382bd;border-color:#4496c6;color:white}
+button:disabled{opacity:.5;cursor:default}
+input[type=file]{width:100%;font-size:11px;color:#bbd3e8;margin:10px 0 4px}
+#progress{display:block;margin-top:8px;line-height:1.45;font-size:12px;color:#d1e6fa;white-space:pre-wrap}
+#progress.error{color:#ffbdbd}
+#progress.success{color:#a8eaca}
+#meta{display:none;margin-top:10px;border-radius:9px;padding:10px;background:#10253b;color:#bbd8ed;font-size:12px}
+#marker{position:fixed;bottom:12px;right:12px;background:#081522e8;border-radius:10px;padding:10px;border:1px solid #38506b;font-size:11px;z-index:3}
+#empty{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:30px;pointer-events:none}
+#empty>div{max-width:440px;border:1px dashed #355d79;border-radius:18px;padding:28px;background:#0d1d30b8}
+#empty h2{font-size:21px;margin:0 0 12px}
+#empty p{font-size:13px;color:#a6c1d6;line-height:1.55;margin:0}
+#legend{position:fixed;bottom:12px;left:12px;padding:9px 12px;background:#0a1728ee;border:1px solid #304b68;border-radius:10px;font-size:11px;display:none}
+a{color:#87ccff}
+@media(max-width:650px){header{top:8px;left:8px;max-height:58vh;width:calc(100% - 16px);padding:12px}#empty>div{margin-top:160px;padding:15px}#marker{font-size:10px;max-width:65%}}
 </style>
-
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"}}</script>
 </head>
 <body>
 <div id="app"></div>
-<div id="loading"><div>Carico il terreno…<small>Visualizzatore dimostrativo · area 401 × 401</small></div></div>
-
-<div class="panel">
-  <h1>Jorrob · Minecraft Base Planner</h1>
-  <div class="sub">Seed <b>-88920646104716782</b><br>Centro di riferimento <b>X -2120 · Z 866</b> · area <b>401×401</b></div>
-  <div class="row">
-    <button id="home">Vista isola</button>
-    <button id="top">Vista dall'alto</button>
-    <button id="waterBtn">Acqua ON</button>
-    <button id="gridBtn">Griglia OFF</button>
-  </div>
-  <div class="legend">
-    <span class="leg"><span class="dot" style="background:#5f9348"></span>verde</span>
-    <span class="leg"><span class="dot" style="background:#77756f"></span>roccia</span>
-    <span class="leg"><span class="dot" style="background:#cdbd83"></span>fondo lago</span>
-    <span class="leg"><span class="dot" style="background:#2d79d5"></span>acqua</span>
-  </div>
-  <div class="status">Versione 1.1 · DEMO 3D stabile. <b>Terreno provvisorio, non estratto dal seed Bedrock.</b> Per una copia fedele servono i chunk del mondo.</div>
+<div id="empty"><div><h2>Il tuo mondo, non una simulazione</h2><p>La precedente isola era inventata ed è stata rimossa. Carica il salvataggio Bedrock per estrarre la forma reale del terreno. In alternativa puoi esplorare il seed in 3D su SeedMapView.</p></div></div>
+<header>
+<h1>Jorrob · Isola Minecraft 3D</h1>
+<div class="sub">Bedrock · Seed <b>-88920646104716782</b><br>Base <b>X -2087, Z 968</b> · centro area <b>X -2120, Z 866</b> · <b>401 × 401</b> blocchi</div>
+<label for="worldfile"><b>1. Carica il mondo originale</b></label>
+<input id="worldfile" type="file" accept=".mcworld,.zip,application/zip">
+<small>Su iPhone: File → Sul mio iPhone → Minecraft → games → com.mojang → minecraftWorlds. Tieni premuta la cartella del mondo e scegli “Comprimi”, poi seleziona qui lo ZIP. Il file viene letto nel browser, non caricato sul nostro server.</small>
+<div class="actions">
+<button id="seedBtn">Copia seed</button>
+<button id="coordBtn">Copia coordinate</button>
+<a class="btn primary" id="external" href="https://seedmapview.com/it/" target="_blank" rel="noopener noreferrer">Mappa seed 3D reale ↗</a>
 </div>
-<div class="coord" id="coord">Trascina per ruotare · zoom con rotella · clicca per coordinate</div>
-
-<script>
-(function(){
- let reported=false;
- function diagnostic(message){
-   const el=document.getElementById('loading');
-   if(!el || reported)return;
-   reported=true;
-   el.innerHTML='<div style="max-width:450px;padding:25px;line-height:1.6"><b style="font-size:19px">Impossibile avviare il visualizzatore 3D</b><small style="display:block;margin:10px 0 16px">Il browser non ha caricato il motore grafico. Controlla la connessione, poi riprova. Dettaglio: '+String(message).replace(/[<>&"']/g,'')+'</small><button onclick="location.reload()" style="font-size:15px">Riprova</button></div>';
- }
- addEventListener('error',e=>diagnostic(e.message||'errore di caricamento'));
- addEventListener('unhandledrejection',e=>diagnostic(String(e.reason||'errore asincrono')));
- setTimeout(()=>diagnostic('tempo massimo superato'),12000);
- window.__showViewerError=diagnostic;
-})();
-</script>
+<div id="progress">Nessun mondo importato. Non verrà mostrato terreno inventato.</div>
+<div id="meta"></div>
+<div class="tools" id="controls" hidden>
+<button id="home">Vista isola</button>
+<button id="top">Dall'alto</button>
+<button id="water">Acqua ON</button>
+<button id="grid">Griglia OFF</button>
+</div>
+<div class="sub" style="margin-top:12px">La visualizzazione dal salvataggio riproduce le <b>altezze reali della superficie, a risoluzione di un blocco</b>. I colori del suolo sono indicativi; grotte, costruzioni e singole texture non sono ancora riprodotti. Le parti del mondo non salvate restano vuote, senza riempimenti fittizi.</div>
+</header>
+<div id="marker">Trascina per ruotare · rotella o pinch per zoom</div>
+<div id="legend">Terreno importato dal salvataggio · superficie a blocchi · colori indicativi</div>
 <script type="module">
 import * as THREE from 'three';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-
-const N=201,R=100,STEP=2,SEA=63,CX=-2120,CZ=866;
-// Modello dimostrativo: NON e' il terreno originale del seed Bedrock.
-const heights=new Uint8Array(N*N);
-function terrainHeight(ix,iz){
- const x=(ix-R)/R,z=(iz-R)/R;
- const ridgeA=49*Math.exp(-((x+.24)**2/.19+(z+.13)**2/.35));
- const ridgeB=36*Math.exp(-((x-.29)**2/.24+(z-.16)**2/.23));
- const spur=25*Math.exp(-((x+.04)**2/.12+(z-.50)**2/.12));
- const detail=3.6*Math.sin(x*15+Math.sin(z*8))*Math.cos(z*13)+2.1*Math.cos(x*28+z*17);
- const base=50+5*Math.sin(x*4.2+z*3.8)-3*Math.cos(z*5);
- return Math.max(35,Math.min(132,Math.round(base+ridgeA+ridgeB+spur+detail)));
-}
-for(let iz=0;iz<N;iz++)for(let ix=0;ix<N;ix++)heights[ix*N+iz]=terrainHeight(ix,iz);
-
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0xa7cde8);
-scene.fog=new THREE.Fog(0xa7cde8,620,1050);
-
-const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,1600);
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.2));
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-document.getElementById('app').appendChild(renderer.domElement);
-
-const controls=new OrbitControls(camera,renderer.domElement);
-controls.enableDamping=true;
-controls.dampingFactor=.065;
-controls.minDistance=65;
-controls.maxDistance=850;
-controls.maxPolarAngle=Math.PI*.495;
-
-scene.add(new THREE.HemisphereLight(0xeaf7ff,0x534837,2.0));
-const sun=new THREE.DirectionalLight(0xfff1cb,1.8);
-sun.position.set(-220,330,180);
-scene.add(sun);
-
-// Mesh a blocchi: facce orizzontali e fianchi verticali, non pendenze lisce.
-const verts=[],vertexColors=[];
-function addQuad(a,b,c,d,hex,shade=1){
- const col=new THREE.Color(hex);col.multiplyScalar(shade);
- for(const v of [a,b,c,a,c,d]){
-  verts.push(v[0],v[1],v[2]);
-  vertexColors.push(col.r,col.g,col.b);
- }
-}
-function H(ix,iz){return heights[ix*N+iz]}
-function blockColor(y){
- if(y<=SEA-5)return 0x837b6e;
- if(y<=SEA+1)return 0xd1c28f;
- if(y>=116)return 0x85827f;
- if(y>=99)return 0x7b925d;
- return 0x599345;
-}
-for(let iz=0;iz<N-1;iz++){
- for(let ix=0;ix<N-1;ix++){
-  const x=(ix-R)*STEP,z=(iz-R)*STEP,y=H(ix,iz),x2=x+STEP,z2=z+STEP;
-  const color=blockColor(y);
-  addQuad([x,y,z],[x,y,z2],[x2,y,z2],[x2,y,z],color,1);
-  const east=(ix<N-2)?H(ix+1,iz):38;
-  if(y>east)addQuad([x2,east,z],[x2,y,z],[x2,y,z2],[x2,east,z2],color,.72);
-  const west=(ix>0)?H(ix-1,iz):38;
-  if(y>west)addQuad([x,west,z2],[x,y,z2],[x,y,z],[x,west,z],color,.67);
-  const south=(iz<N-2)?H(ix,iz+1):38;
-  if(y>south)addQuad([x,south,z2],[x2,south,z2],[x2,y,z2],[x,y,z2],color,.79);
-  const north=(iz>0)?H(ix,iz-1):38;
-  if(y>north)addQuad([x,y,z],[x2,y,z],[x2,north,z],[x,north,z],color,.68);
- }
-}
-const geo=new THREE.BufferGeometry();
-geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
-geo.setAttribute('color',new THREE.Float32BufferAttribute(vertexColors,3));
-geo.computeVertexNormals();
-const terrainMat=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
-const terrain=new THREE.Mesh(geo,terrainMat);
-scene.add(terrain);
-
- // Water plane.
-const water=new THREE.Mesh(
-  new THREE.PlaneGeometry((N-1)*STEP,(N-1)*STEP),
-  new THREE.MeshPhysicalMaterial({color:0x2d79d5,transparent:true,opacity:.44,roughness:.15,metalness:0,depthWrite:false,side:THREE.DoubleSide})
-);
-water.rotation.x=-Math.PI/2;
-water.position.y=SEA+.55;
-scene.add(water);
-
-// Center marker.
-const centerY=H(R,R);
-const marker=new THREE.Mesh(
-  new THREE.CylinderGeometry(1.25,1.25,8,16),
-  new THREE.MeshLambertMaterial({color:0xff5148})
-);
-marker.position.set(0,centerY+5,0);
-scene.add(marker);
-
-function home(){camera.position.set(340,245,340);controls.target.set(0,86,0);controls.update()}
-function top(){camera.position.set(0,610,.01);controls.target.set(0,70,0);controls.update()}
-home();
-
-document.getElementById('home').onclick=home;
-document.getElementById('top').onclick=top;
-document.getElementById('waterBtn').onclick=e=>{water.visible=!water.visible;e.target.textContent='Acqua '+(water.visible?'ON':'OFF')};
-document.getElementById('gridBtn').onclick=e=>{terrainMat.wireframe=!terrainMat.wireframe;terrainMat.needsUpdate=true;e.target.textContent='Griglia '+(terrainMat.wireframe?'ON':'OFF')};
-
-const ray=new THREE.Raycaster(),mouse=new THREE.Vector2(),coord=document.getElementById('coord');
-renderer.domElement.addEventListener('click',ev=>{
-  mouse.x=ev.clientX/innerWidth*2-1;mouse.y=-(ev.clientY/innerHeight)*2+1;
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const SEED='-88920646104716782', CX=-2120, CZ=866, N=401, R=200, SEA=63;
+const el=id=>document.getElementById(id), position=el('marker'),prog=el('progress');
+let scene,camera,renderer,controls,terrain,waterMesh,gridOn=false,loaded=false;
+function report(msg,kind=''){prog.textContent=msg;prog.className=kind}
+function fail(e){console.error(e);report('Errore: '+(e?.message||String(e))+' — Se il mondo è grande, prova da PC.','error')}
+el('seedBtn').addEventListener('click',async()=>{await navigator.clipboard.writeText(SEED);report('Seed copiato. Apri la mappa esterna e seleziona Bedrock e la versione del tuo mondo.','success')});
+el('coordBtn').addEventListener('click',async()=>{await navigator.clipboard.writeText('-2120 866');report('Coordinate del centro copiate: X -2120, Z 866','success')});
+function init3D(){
+ if(renderer)return;
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x9cc6e3);scene.fog=new THREE.Fog(0x9cc6e3,650,1250);
+ camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,.5,2000);
+ renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+ renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
+ el('app').appendChild(renderer.domElement);
+ controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.065;
+ controls.minDistance=10;controls.maxDistance=1000;controls.maxPolarAngle=Math.PI*.493;
+ scene.add(new THREE.HemisphereLight(0xdff4ff,0x4f4738,2.1));
+ const sun=new THREE.DirectionalLight(0xffefcf,2.2);sun.position.set(-200,330,150);scene.add(sun);
+ const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+ renderer.domElement.addEventListener('click',event=>{
+  if(!terrain)return;
+  mouse.set(event.clientX/innerWidth*2-1,1-event.clientY/innerHeight*2);
   ray.setFromCamera(mouse,camera);
   const hit=ray.intersectObject(terrain,false)[0];
-  if(hit){
-    const q=hit.point;
-    coord.textContent='X '+Math.round(CX+q.x)+' · Y '+Math.round(q.y)+' · Z '+Math.round(CZ+q.z);
+  if(hit){const p=hit.point;position.textContent='X '+Math.floor(CX+p.x+R)+' · Y '+Math.round(p.y)+' · Z '+Math.floor(CZ+p.z+R)}
+ });
+ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+ function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate()
+}
+function viewHome(){if(!camera)return;camera.position.set(730,390,730);controls.target.set(R,70,R);controls.update()}
+function viewTop(){if(!camera)return;camera.position.set(R,720,R+.01);controls.target.set(R,70,R);controls.update()}
+el('home').onclick=viewHome;el('top').onclick=viewTop;
+el('water').onclick=e=>{if(!waterMesh)return;waterMesh.visible=!waterMesh.visible;e.target.textContent='Acqua '+(waterMesh.visible?'ON':'OFF')};
+el('grid').onclick=e=>{gridOn=!gridOn;if(terrain){terrain.material.wireframe=gridOn;terrain.material.needsUpdate=true}e.target.textContent='Griglia '+(gridOn?'ON':'OFF')};
+function chunkKey(x,z,type){
+ const bytes=new Uint8Array(9),dv=new DataView(bytes.buffer);
+ dv.setInt32(0,x,true);dv.setInt32(4,z,true);bytes[8]=type;
+ return String.fromCharCode(...bytes)
+}
+function calculateChunkRanges(){
+ return {x0:Math.floor((CX-R)/16),x1:Math.floor((CX+R)/16),
+         z0:Math.floor((CZ-R)/16),z1:Math.floor((CZ+R)/16)}
+}
+const yieldFrame=()=>new Promise(res=>setTimeout(res,0));
+async function extractHeights(db){
+ const H=new Float32Array(N*N);H.fill(NaN);
+ let found=0,processed=0,nonempty=0;
+ const {x0,x1,z0,z1}=calculateChunkRanges();
+ const total=(x1-x0+1)*(z1-z0+1);
+ for(let cz=z0;cz<=z1;cz++)for(let cx=x0;cx<=x1;cx++){
+  let entry=await db.getKey(chunkKey(cx,cz,0x2b));
+  if(!entry||!entry.value)entry=await db.getKey(chunkKey(cx,cz,0x2d));
+  if(!entry||!entry.value)entry=await db.getKey(chunkKey(cx,cz,0x2e));
+  if(entry?.value?.length>=512){
+   const data=new DataView(entry.value.buffer,entry.value.byteOffset,entry.value.byteLength);
+   found++;
+   for(let lz=0;lz<16;lz++)for(let lx=0;lx<16;lx++){
+    const wx=cx*16+lx,wz=cz*16+lz, ix=wx-(CX-R),iz=wz-(CZ-R);
+    if(ix<0||iz<0||ix>=N||iz>=N)continue;
+    const raw=data.getUint16(2*(lz*16+lx),true);
+    // Bedrock Data3D stores elevation relative to the world bottom (-64).
+    const h=raw-64;
+    if(h>=-64&&h<=320){H[ix+iz*N]=h;nonempty++}
+   }
   }
+  processed++;
+  if(processed%24===0){report('Leggo il mondo originale: '+processed+' / '+total+' chunk · '+found+' trovati');await yieldFrame()}
+ }
+ return {H,found,nonempty,total}
+}
+function colorAt(y){
+ if(y<SEA-4)return 0x8a8077;
+ if(y<=SEA+1)return 0xc6b783;
+ if(y>115)return 0x7c8186;
+ if(y>101)return 0x738d63;
+ return 0x649d54
+}
+function showTerrain(H){
+ init3D();
+ if(terrain){scene.remove(terrain);terrain.geometry.dispose();terrain.material.dispose()}
+ if(waterMesh){scene.remove(waterMesh);waterMesh.geometry.dispose();waterMesh.material.dispose()}
+ const verts=[],cols=[],color=new THREE.Color();
+ function quad(a,b,c,d,hex,shade){
+  color.setHex(hex).multiplyScalar(shade);
+  for(const p of [a,b,c,a,c,d]){verts.push(...p);cols.push(color.r,color.g,color.b)}
+ }
+ let count=0,low=999,high=-999;
+ for(let iz=0;iz<N;iz++){
+  for(let ix=0;ix<N;ix++){
+   const y=H[ix+iz*N];if(!Number.isFinite(y))continue;
+   count++;low=Math.min(low,y);high=Math.max(high,y);
+   const col=colorAt(y),x=ix,z=iz;
+   quad([x,y,z],[x+1,y,z],[x+1,y,z+1],[x,y,z+1],col,1);
+   const e=ix+1<N?H[ix+1+iz*N]:NaN;
+   const w=ix>0?H[ix-1+iz*N]:NaN;
+   const s=iz+1<N?H[ix+(iz+1)*N]:NaN;
+   const n=iz>0?H[ix+(iz-1)*N]:NaN;
+   if(Number.isFinite(e)&&y>e)quad([x+1,y,z],[x+1,e,z],[x+1,e,z+1],[x+1,y,z+1],col,.68);
+   if(Number.isFinite(w)&&y>w)quad([x,y,z+1],[x,w,z+1],[x,w,z],[x,y,z],col,.73);
+   if(Number.isFinite(s)&&y>s)quad([x,y,z+1],[x+1,y,z+1],[x+1,s,z+1],[x,s,z+1],col,.81);
+   if(Number.isFinite(n)&&y>n)quad([x+1,y,z],[x,y,z],[x,n,z],[x+1,n,z],col,.65)
+  }
+ }
+ if(!count)throw Error('Nessuna altezza valida trovata.');
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+ geo.computeVertexNormals();
+ terrain=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
+ scene.add(terrain);
+ // The water is intentionally only a visualization, not a claim about actual fluid blocks.
+ waterMesh=new THREE.Mesh(new THREE.PlaneGeometry(N,N),new THREE.MeshBasicMaterial({color:0x2467b5,transparent:true,opacity:.35,depthWrite:false,side:THREE.DoubleSide}));
+ waterMesh.rotation.x=-Math.PI/2;waterMesh.position.set(R+.5,SEA+.2,R+.5);scene.add(waterMesh);
+ controls.target.set(R,(low+high)/2,R);
+ camera.position.set(R+400,Math.max(170,high+170),R+440);controls.update();
+ el('empty').style.display='none';el('controls').hidden=false;el('legend').style.display='block';loaded=true;
+ return {count,low,high}
+}
+el('worldfile').addEventListener('change',async ev=>{
+ const file=ev.target.files?.[0];if(!file)return;
+ if(!/\.(zip|mcworld)$/i.test(file.name)){report('Seleziona uno ZIP del mondo o un file .mcworld.','error');return}
+ el('worldfile').disabled=true;report('Apro il salvataggio originale ('+(file.size/1048576).toFixed(1)+' MB)…');
+ try{
+  const {openMcworld}=await import('https://esm.sh/mcbe-leveldb-reader@5.0.1?bundle&target=es2022');
+  const db=await openMcworld(file);
+  await db.initLazy({maxKeysInMemory:50000});
+  report('Database trovato. Leggo soltanto i chunk della zona X -2120, Z 866…');
+  const result=await extractHeights(db);
+  if(result.found===0)throw Error('Nessun chunk salvato nell’area selezionata. Controlla che il mondo scelto sia quello giusto e che tu abbia esplorato questa zona.');
+  report('Disegno le superfici 3D a risoluzione di un blocco…');await yieldFrame();
+  const stats=showTerrain(result.H);
+  el('meta').style.display='block';
+  el('meta').textContent='Dati reali: '+result.found+' / '+result.total+' chunk disponibili, '+stats.count+' colonne su '+(N*N)+'. Quote Y da '+stats.low+' a '+stats.high+'. Zone non salvate lasciate vuote.';
+  report('Mondo importato. Il rilievo mostrato proviene dal salvataggio, non da un algoritmo inventato.','success')
+ }catch(e){fail(e)}finally{el('worldfile').disabled=false}
 });
-
-addEventListener('resize',()=>{
-  camera.aspect=innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
-});
-
-document.getElementById('loading').remove();
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}
-animate();
 </script>
 </body>
 </html>

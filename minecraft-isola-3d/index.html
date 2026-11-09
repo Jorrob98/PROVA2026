@@ -21,6 +21,7 @@ small{font-size:11px;line-height:1.4;color:#a6bed5}
 .tools,.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
 button,.btn{display:inline-block;font-family:inherit;border:1px solid #47749c;background:#15385a;border-radius:9px;padding:9px 10px;color:#e5f5ff;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none}
 button:hover,.btn:hover{background:#23547d}
+button.active{background:#286a85;border-color:#5fe2f6;box-shadow:inset 0 0 0 1px #5fe2f6}
 button.primary,.btn.primary{background:#2382bd;border-color:#4496c6;color:white}
 button:disabled{opacity:.5;cursor:default}
 input[type=file]{width:100%;font-size:11px;color:#bbd3e8;margin:10px 0 4px}
@@ -37,7 +38,7 @@ input[type=file]{width:100%;font-size:11px;color:#bbd3e8;margin:10px 0 4px}
 a{color:#87ccff}
 @media(max-width:650px){header{top:8px;left:8px;max-height:58vh;width:calc(100% - 16px);padding:12px}#empty>div{margin-top:160px;padding:15px}#marker{font-size:10px;max-width:65%}}
 
-#seedFallback{position:fixed;z-index:2;top:50%;left:calc(400px + (100vw - 400px)/2);transform:translate(-50%,-50%);width:min(580px,calc(100vw - 445px));background:#102238;border:1px solid #446888;border-radius:20px;padding:27px;box-shadow:0 20px 70px #0008;line-height:1.55}
+#seedFallback{display:none;position:fixed;z-index:2;top:50%;left:calc(400px + (100vw - 400px)/2);transform:translate(-50%,-50%);width:min(580px,calc(100vw - 445px));background:#102238;border:1px solid #446888;border-radius:20px;padding:27px;box-shadow:0 20px 70px #0008;line-height:1.55}
 #seedFallback h2{font-size:24px;margin:8px 0 10px}
 #seedFallback p{font-size:13px;color:#b9d3e6;margin:0 0 16px}
 #seedFallback a{display:block;width:100%;text-align:center;text-decoration:none;background:#2384bc;border-radius:10px;padding:12px 14px;color:white;font-weight:750;font-size:15px}
@@ -48,14 +49,14 @@ a{color:#87ccff}
 .gatewayValues strong{display:block;font-size:13px;color:white;margin-top:2px;overflow-wrap:anywhere}
 #seedFallback ol{padding-left:20px;font-size:12px;color:#bbd6eb;margin:10px 0}
 #seedFallback li{margin:5px 0}
-#marker{display:none}
+#marker{display:block}
 @media(max-width:800px){header{position:relative;top:8px;left:8px;width:calc(100% - 16px);max-height:none}#app{position:fixed}#seedFallback{position:relative;top:auto;left:auto;transform:none;width:calc(100% - 16px);margin:18px 8px 30px;padding:18px}body{overflow-y:auto;padding-bottom:20px}#marker{bottom:8px;right:8px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"}}</script>
 </head>
 <body>
 <div id="app"></div>
-<div id="seedFallback" role="region" aria-label="Mappa dal seed">
+<div id="seedFallback" role="region" aria-label="Mappa dal seed" style="display:none">
  <div class="gatewayEyebrow">MINECRAFT BEDROCK · VISUALIZZAZIONE TERRENO</div>
  <h2>Esplora la tua isola in 3D</h2>
  <p>SeedMapView non consente la visualizzazione dentro questo sito. Aprilo in una nuova scheda: potrai esplorare il terreno generato dal seed, senza simulazioni inventate.</p>
@@ -66,9 +67,13 @@ a{color:#87ccff}
  </div>
 <div id="empty" style="display:none"></div>
 <header>
-<h1>Jorrob · Isola Minecraft 3D <span style="font-size:11px;color:#87d5ff">2.1</span></h1>
+<h1>Jorrob · Minecraft Base Planner <span style="font-size:11px;color:#87d5ff">3.0</span></h1>
 <div class="sub">Bedrock · Seed <b>-88920646104716782</b><br>Base <b>X -2087, Z 968</b> · centro area <b>X -2120, Z 866</b> · <b>401 × 401</b> blocchi</div>
-<div style="font-size:12px;color:#a5f0d1;margin:10px 0">Per la visualizzazione dal seed, premi “Apri SeedMapView” nel pannello principale. Il modello interno richiede il salvataggio.</div>
+<div style="font-size:12px;color:#a5f0d1;margin:10px 0">Nuova vista 3D: progetto dei sei livelli della base. Lo schema è indicativo; non rappresenta il rilievo originale dell'isola.</div>
+<div class="tools" id="projectTools" style="display:flex;margin-bottom:12px">
+ <button id="projectAll">Tutti i livelli</button>
+ <button data-plan="0">Casa</button><button data-plan="1">Acquario</button><button data-plan="2">Zoo</button><button data-plan="3">Farm</button><button data-plan="4">Magazzino</button><button data-plan="5">Hub</button>
+</div>
 <details class="import" id="importbox"><summary>Importa mondo salvato (opzionale)</summary><label for="worldfile"><b>Seleziona il file .mcworld o ZIP originale</b></label>
 <input id="worldfile" type="file" accept=".mcworld,.zip,application/zip">
 <small>Da Minecraft Bedrock su Windows: Gioca → matita del mondo → Esporta mondo e seleziona qui il .mcworld. In alternativa puoi importare uno ZIP della cartella del mondo. Il file viene letto nel browser, non caricato sul nostro server.</small></details>
@@ -77,7 +82,7 @@ a{color:#87ccff}
 <button id="coordBtn">Copia coordinate</button>
 <a class="btn primary" id="external" href="https://seedmapview.com/it/" target="_blank" rel="noopener noreferrer">Apri il sito 3D ↗</a><button id="backSeed" style="display:none">Torna alla mappa seed</button>
 </div>
-<div id="progress">Non serve caricare file per esplorare il seed sul sito esterno. Se vuoi esplorare il rilievo del tuo salvataggio qui, seleziona un file .mcworld o ZIP.</div>
+<div id="progress">Schema 3D attivo · ruota trascinando, ingrandisci con la rotella, seleziona un piano. Il vero terreno Bedrock si importa opzionalmente dal mondo.</div>
 <div id="meta"></div>
 <div class="tools" id="controls" hidden>
 <button id="home">Vista isola</button>
@@ -87,14 +92,14 @@ a{color:#87ccff}
 </div>
 <div class="sub" style="margin-top:12px">L’importazione opzionale dal salvataggio riproduce le <b>altezze reali della superficie, a risoluzione di un blocco</b>. I colori del suolo sono indicativi; grotte, costruzioni e singole texture non sono ancora riprodotti. Le parti del mondo non salvate restano vuote, senza riempimenti fittizi.</div>
 </header>
-<div id="marker">Trascina per ruotare · rotella o pinch per zoom</div>
+<div id="marker">Progetto 3D · trascina per ruotare · rotella o pinch per zoom</div>
 <div id="legend">Terreno importato dal salvataggio · superficie a blocchi · colori indicativi</div>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const SEED='-88920646104716782', CX=-2120, CZ=866, N=401, R=200, SEA=63;
 const el=id=>document.getElementById(id), position=el('marker'),prog=el('progress');
-let scene,camera,renderer,controls,terrain,waterMesh,gridOn=false,loaded=false;
+let scene,camera,renderer,controls,terrain,waterMesh,gridOn=false,loaded=false,plannerGroup=null,plannerFloors=[],schematicWater=null;
 function report(msg,kind=''){prog.textContent=msg;prog.className=kind}
 function fail(e){console.error(e);report('Errore: '+(e?.message||String(e))+' — Se il mondo è grande, prova da PC.','error')}
 el('seedBtn').addEventListener('click',async()=>{await navigator.clipboard.writeText(SEED);report('Seed copiato. Apri la mappa esterna e seleziona Bedrock e la versione del tuo mondo.','success')});
@@ -124,7 +129,7 @@ function init3D(){
 function viewHome(){if(!camera)return;camera.position.set(730,390,730);controls.target.set(R,70,R);controls.update()}
 function viewTop(){if(!camera)return;camera.position.set(R,720,R+.01);controls.target.set(R,70,R);controls.update()}
 el('home').onclick=viewHome;el('top').onclick=viewTop;
-el('backSeed').onclick=()=>{el('seedFallback').style.display='block';position.style.display='none';if(renderer)renderer.domElement.style.display='none';el('backSeed').style.display='none';el('legend').style.display='none';el('controls').hidden=true;report('Modalità seed attiva. Visualizzazione esterna da Bedrock.','success')};
+el('backSeed').onclick=()=>{if(renderer)renderer.domElement.style.display='block';el('backSeed').style.display='none';el('legend').style.display='none';el('controls').hidden=true;showPlanner();report('Schema progettuale 3D attivo. Il terreno autentico non è ancora stato importato.','success')};
 el('water').onclick=e=>{if(!waterMesh)return;waterMesh.visible=!waterMesh.visible;e.target.textContent='Acqua '+(waterMesh.visible?'ON':'OFF')};
 el('grid').onclick=e=>{gridOn=!gridOn;if(terrain){terrain.material.wireframe=gridOn;terrain.material.needsUpdate=true}e.target.textContent='Griglia '+(gridOn?'ON':'OFF')};
 function chunkKey(x,z,type){
@@ -172,6 +177,9 @@ function colorAt(y){
 }
 function showTerrain(H){
  init3D();
+ if(plannerGroup){scene.remove(plannerGroup);plannerGroup=null}
+ if(schematicWater){scene.remove(schematicWater);schematicWater=null}
+ el('projectTools').style.display='none';
  el('seedFallback').style.display='none';position.style.display='block';
  renderer.domElement.style.display='block';el('backSeed').style.display='inline-block';
  if(terrain){scene.remove(terrain);terrain.geometry.dispose();terrain.material.dispose()}
@@ -213,6 +221,113 @@ function showTerrain(H){
  el('empty').style.display='none';el('controls').hidden=false;el('legend').style.display='block';loaded=true;
  return {count,low,high}
 }
+
+function showPlanner(){
+ init3D();
+ if(plannerGroup){scene.remove(plannerGroup)}
+ plannerGroup=new THREE.Group();scene.add(plannerGroup);
+ plannerFloors=[];
+ if(schematicWater){scene.remove(schematicWater);schematicWater=null}
+ const X=R+33,Z=R+102;
+ scene.background.setHex(0x101e31);scene.fog=new THREE.Fog(0x101e31,350,850);
+ function mat(hex,opacity=1){return new THREE.MeshLambertMaterial({color:hex,transparent:opacity<1,opacity,side:THREE.DoubleSide,depthWrite:opacity===1})}
+ function block(group,x,y,z,w,h,d,hex,opacity=1){
+  const obj=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(hex,opacity));
+  obj.position.set(X+x,y,Z+z);group.add(obj);return obj
+ }
+ function border(group,y,half=31,hex=0x8fcfff){
+  const pts=[[-half,-half],[half,-half],[half,half],[-half,half],[-half,-half]];
+  const points=pts.map(p=>new THREE.Vector3(X+p[0],y,Z+p[1]));
+  group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:hex})))
+ }
+ function sign(group,name,y,color){
+  const c=document.createElement('canvas');c.width=512;c.height=96;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#061423';ctx.fillRect(0,0,512,96);
+  ctx.strokeStyle='#9ed2ed';ctx.strokeRect(2,2,508,92);
+  ctx.font='bold 39px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='#ffffff';ctx.fillText(name,256,50,495);
+  const tex=new THREE.CanvasTexture(c);
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  sprite.position.set(X-42,y+3,Z+2);sprite.scale.set(32,6,1);group.add(sprite)
+ }
+ const levels=[
+  {name:'CASA',y:71,color:0x53a8eb},{name:'ACQUARIO',y:53,color:0x32bed6},
+  {name:'ZOO',y:35,color:0xe2ab55},{name:'FARM',y:17,color:0x74c477},
+  {name:'MAGAZZINO',y:-1,color:0x9a9fe9},{name:'HUB TRASPORTI',y:-19,color:0xed81bb}
+ ];
+ for(let i=0;i<levels.length;i++){
+  const l=levels[i],fg=new THREE.Group();plannerGroup.add(fg);plannerFloors.push(fg);
+  block(fg,0,l.y,0,64,2.5,64,l.color,.82);
+  border(fg,l.y+1.6,32,l.color);
+  sign(fg,(i===0?'0':i===5?'-5':'-'+i)+' · '+l.name,l.y+5,l.color);
+  for(const x of [-30,30])for(const z of [-30,30])block(fg,x,l.y+7,z,1.6,12,1.6,l.color,.65);
+  if(i===0){
+   block(fg,2,l.y+8,0,36,13,31,0xb8d8e4,.42);block(fg,2,l.y+15,0,40,1,34,0x275676);
+   for(const x of [-15,-9,-3,3,9,15])block(fg,x,l.y+2,-10,2,2,9,0x3770a8,.8);
+   block(fg,-19,l.y+5,17,9,10,9,0x427b69,.8);
+  } else if(i===1){
+   for(let q=0;q<4;q++){
+    const bx=(q%2)*27-14,bz=Math.floor(q/2)*28-14;
+    block(fg,bx,l.y+7,bz,23,13,24,0x1a91e0,.25);
+    for(let k=0;k<6;k++)block(fg,bx-8+(k%3)*7,l.y+4+(k%2)*3,bz-4+Math.floor(k/3)*8,2,1,1,k%2?0xffaa4a:0xff5d7f,1);
+   }
+  } else if(i===2){
+   for(let q=0;q<6;q++){
+    const bx=(q%3)*20-20,bz=Math.floor(q/3)*26-13;
+    block(fg,bx,l.y+1.5,bz,17,1,22,q%2?0xa88e5f:0x6b9e57,.8);
+    for(const ox of [-7,7])block(fg,bx+ox,l.y+4,bz,0.8,7,20,0x9aaeb0,.55);
+    for(const oz of [-9,9])block(fg,bx,l.y+4,bz+oz,16,.8,.8,0x9aaeb0,.6);
+   }
+  } else if(i===3){
+   for(let q=0;q<6;q++){
+    const bx=-24+q*9;
+    block(fg,bx,l.y+2,0,6,2,48,q%2?0x3a8d45:0x9ab841);
+    for(let k=-4;k<=4;k++)block(fg,bx,l.y+3.8,k*5,4,1.8,2,q%2?0x8dd455:0xd1b94e);
+   }
+  } else if(i===4){
+   for(let q=0;q<7;q++)for(let z=-3;z<=3;z++){
+    if(q===3)continue;
+    block(fg,(q-3)*8,l.y+5,z*9,6,9,6,z%2?0xb48c5c:0xb6c9d6,.9);
+   }
+   block(fg,0,l.y+2,0,9,2,52,0x6be9d4);
+  } else if(i===5){
+   block(fg,0,l.y+2,0,31,4,31,0x6392bb,.72);
+   for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
+    const tube=new THREE.Mesh(new THREE.BoxGeometry(16,5,61),mat(0x3d93da,.68));
+    tube.position.set(X+Math.sin(a)*18,l.y+4,Z+Math.cos(a)*18);tube.rotation.y=a;fg.add(tube);
+   }
+   block(fg,0,l.y+6,0,13,2,13,0xeeb76e);
+  }
+ }
+ // Ascensore centrale, continuo tra tutti i livelli
+ block(plannerGroup,0,31,0,7,119,7,0x6fdcf0,.18);
+ for(let i=0;i<6;i++)block(plannerGroup,0,levels[i].y+3,0,8,1,8,0xf4d88e,.9);
+ // Superficie acqua: piano scenografico per indicare la quota, NON simulazione del mondo.
+ schematicWater=new THREE.Mesh(new THREE.PlaneGeometry(230,230),
+ new THREE.MeshBasicMaterial({color:0x236dbb,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide}));
+ schematicWater.rotation.x=-Math.PI/2;schematicWater.position.set(X,63,Z);scene.add(schematicWater);
+ const axes=new THREE.GridHelper(210,21,0x43677f,0x355067);
+ axes.position.set(X,-26,Z);plannerGroup.add(axes);
+ camera.position.set(X+170,105,Z+188);controls.target.set(X,26,Z);controls.maxDistance=700;controls.update();
+ el('seedFallback').style.display='none';el('controls').hidden=true;el('legend').style.display='block';
+ el('legend').textContent='Schema di progetto, NON terreno Minecraft · 6 livelli · base X -2087 Z 968';
+ el('projectTools').style.display='flex';
+ document.querySelectorAll('[data-plan]').forEach(b=>b.classList.remove('active'));
+ loaded=false;
+}
+function focusFloor(n){
+ if(!plannerFloors.length)return;
+ plannerFloors.forEach((obj,i)=>obj.visible=(n<0||i===n));
+ if(schematicWater)schematicWater.visible=(n<0||n===0||n===1);
+ const y=[71,53,35,17,-1,-19][n]??25, X=R+33,Z=R+102;
+ controls.target.set(X,y,Z);camera.position.set(X+115,y+68,Z+125);controls.update();
+ document.querySelectorAll('[data-plan]').forEach(b=>b.classList.toggle('active',Number(b.dataset.plan)===n));
+}
+el('projectAll').onclick=()=>{plannerFloors.forEach(obj=>obj.visible=true);if(schematicWater)schematicWater.visible=true;controls.target.set(R+33,25,R+102);camera.position.set(R+33+170,105,R+102+188);controls.update();document.querySelectorAll('[data-plan]').forEach(b=>b.classList.remove('active'))};
+document.querySelectorAll('[data-plan]').forEach(b=>b.onclick=()=>focusFloor(Number(b.dataset.plan)));
+showPlanner();
+
 el('worldfile').addEventListener('change',async ev=>{
  const file=ev.target.files?.[0];if(!file)return;
  if(!/\.(zip|mcworld)$/i.test(file.name)){report('Seleziona uno ZIP del mondo o un file .mcworld.','error');return}

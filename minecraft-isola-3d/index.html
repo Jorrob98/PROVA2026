@@ -53,6 +53,19 @@ a{color:#87ccff}
 @media(max-width:800px){header{position:relative;top:8px;left:8px;width:calc(100% - 16px);max-height:none}#app{position:fixed}#seedFallback{position:relative;top:auto;left:auto;transform:none;width:calc(100% - 16px);margin:18px 8px 30px;padding:18px}body{overflow-y:auto;padding-bottom:20px}#marker{bottom:8px;right:8px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"}}</script>
+<script>
+window.jorrobReady = false;
+function jorrobError(message) {
+ if (window.jorrobReady) return;
+ const overlay=document.getElementById('seedFallback');
+ if (!overlay) return;
+ overlay.style.display='block';
+ overlay.innerHTML='<h2>Il 3D non si è avviato</h2><p>Il motore grafico potrebbe essere bloccato dalla rete o dal browser. '+String(message).replace(/[<>&"']/g,'')+'</p><button onclick="location.reload()">Riprova</button><p>Puoi comunque aprire la mappa seed in una scheda esterna dal pulsante a sinistra.</p>';
+}
+window.addEventListener('error',e=>jorrobError(e.message||'Errore di caricamento JavaScript.'));
+window.addEventListener('unhandledrejection',e=>jorrobError(String(e.reason||'Errore asincrono.')));
+setTimeout(()=>jorrobError('Il caricamento ha superato il limite di 15 secondi.'),15000);
+</script>
 </head>
 <body>
 <div id="app"></div>
@@ -327,6 +340,7 @@ function focusFloor(n){
 el('projectAll').onclick=()=>{plannerFloors.forEach(obj=>obj.visible=true);if(schematicWater)schematicWater.visible=true;controls.target.set(R+33,25,R+102);camera.position.set(R+33+170,105,R+102+188);controls.update();document.querySelectorAll('[data-plan]').forEach(b=>b.classList.remove('active'))};
 document.querySelectorAll('[data-plan]').forEach(b=>b.onclick=()=>focusFloor(Number(b.dataset.plan)));
 showPlanner();
+window.jorrobReady=true;
 
 el('worldfile').addEventListener('change',async ev=>{
  const file=ev.target.files?.[0];if(!file)return;

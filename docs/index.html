@@ -3,363 +3,170 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b1726">
-<title>Jorrob | Minecraft Isola 3D</title>
+<meta name="theme-color" content="#0c1521">
+<title>Jorrob · Lettore GLB</title>
 <style>
 *{box-sizing:border-box}
-[hidden]{display:none!important}
-html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#edf6ff;background:#0a121f}
-#app{position:fixed;inset:0;background:linear-gradient(155deg,#122337,#08111b)}
-#app canvas{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-index:3}
-details.import{margin:10px 0;border:1px solid #344d68;border-radius:10px;padding:8px 10px;background:#13243a}
-details.import>summary{font-size:12px;font-weight:700;cursor:pointer;color:#d6efff}
-header{position:fixed;z-index:4;top:12px;left:12px;max-height:calc(100vh - 24px);overflow-y:auto;width:min(400px,calc(100% - 24px));background:rgba(9,18,30,.94);border:1px solid #37516b;border-radius:16px;padding:15px;box-shadow:0 15px 50px #0008}
-header h1{margin:0;font-size:18px}
-.sub{font-size:12px;color:#afc2d4;line-height:1.5;margin:4px 0 12px}
-label{font-size:12px;color:#dbeafe}
-small{font-size:11px;line-height:1.4;color:#a6bed5}
-.tools,.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
-button,.btn{display:inline-block;font-family:inherit;border:1px solid #47749c;background:#15385a;border-radius:9px;padding:9px 10px;color:#e5f5ff;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none}
-button:hover,.btn:hover{background:#23547d}
-button.active{background:#286a85;border-color:#5fe2f6;box-shadow:inset 0 0 0 1px #5fe2f6}
-button.primary,.btn.primary{background:#2382bd;border-color:#4496c6;color:white}
-button:disabled{opacity:.5;cursor:default}
-input[type=file]{width:100%;font-size:11px;color:#bbd3e8;margin:10px 0 4px}
-#progress{display:block;margin-top:8px;line-height:1.45;font-size:12px;color:#d1e6fa;white-space:pre-wrap}
-#progress.error{color:#ffbdbd}
-#progress.success{color:#a8eaca}
-#meta{display:none;margin-top:10px;border-radius:9px;padding:10px;background:#10253b;color:#bbd8ed;font-size:12px}
-#marker{position:fixed;bottom:12px;right:12px;background:#081522e8;border-radius:10px;padding:10px;border:1px solid #38506b;font-size:11px;z-index:3}
-#empty{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:30px;pointer-events:none}
-#empty>div{max-width:440px;border:1px dashed #355d79;border-radius:18px;padding:28px;background:#0d1d30b8}
-#empty h2{font-size:21px;margin:0 0 12px}
-#empty p{font-size:13px;color:#a6c1d6;line-height:1.55;margin:0}
-#legend{position:fixed;bottom:12px;left:12px;padding:9px 12px;background:#0a1728ee;border:1px solid #304b68;border-radius:10px;font-size:11px;display:none}
-a{color:#87ccff}
-@media(max-width:650px){header{top:8px;left:8px;max-height:58vh;width:calc(100% - 16px);padding:12px}#empty>div{margin-top:160px;padding:15px}#marker{font-size:10px;max-width:65%}}
-
-#seedFallback{display:none;position:fixed;z-index:2;top:50%;left:calc(400px + (100vw - 400px)/2);transform:translate(-50%,-50%);width:min(580px,calc(100vw - 445px));background:#102238;border:1px solid #446888;border-radius:20px;padding:27px;box-shadow:0 20px 70px #0008;line-height:1.55}
-#seedFallback h2{font-size:24px;margin:8px 0 10px}
-#seedFallback p{font-size:13px;color:#b9d3e6;margin:0 0 16px}
-#seedFallback a{display:block;width:100%;text-align:center;text-decoration:none;background:#2384bc;border-radius:10px;padding:12px 14px;color:white;font-weight:750;font-size:15px}
-#seedFallback a:hover{background:#319bd8}
-.gatewayEyebrow{font-size:10px;font-weight:800;color:#78d1ff;letter-spacing:1.1px}
-.gatewayValues{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:17px 0}
-.gatewayValues span{padding:11px;background:#0a1728;border:1px solid #334c66;border-radius:10px;font-size:11px;color:#b1c6d7}
-.gatewayValues strong{display:block;font-size:13px;color:white;margin-top:2px;overflow-wrap:anywhere}
-#seedFallback ol{padding-left:20px;font-size:12px;color:#bbd6eb;margin:10px 0}
-#seedFallback li{margin:5px 0}
-#marker{display:block}
-@media(max-width:800px){header{position:relative;top:8px;left:8px;width:calc(100% - 16px);max-height:none}#app{position:fixed}#seedFallback{position:relative;top:auto;left:auto;transform:none;width:calc(100% - 16px);margin:18px 8px 30px;padding:18px}body{overflow-y:auto;padding-bottom:20px}#marker{bottom:8px;right:8px}}
+html,body{height:100%;margin:0;overflow:hidden;background:#0d1929;color:#eff7ff;font:14px/1.5 system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+#scene{position:fixed;inset:0;touch-action:none}
+#scene canvas{display:block;width:100%;height:100%}
+.header{position:absolute;top:12px;left:12px;right:12px;z-index:3;pointer-events:none;display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+.brand,.toolbar{pointer-events:auto;padding:13px 15px;border-radius:13px;background:#071525e9;border:1px solid #38546b;box-shadow:0 10px 30px #0004}
+.brand strong{font-size:16px;display:block}.brand small{color:#a6bfd3;font-size:12px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{border:1px solid #3e83ae;border-radius:9px;background:#197eaf;color:#fff;padding:9px 13px;font-weight:700;cursor:pointer;font:inherit}
+button:hover{background:#238fc3}
+button.secondary{background:#193047;border-color:#426079}
+#center{position:absolute;inset:0;z-index:2;display:grid;place-items:center;pointer-events:none}
+#message{pointer-events:auto;max-width:420px;width:calc(100% - 30px);padding:24px;background:#081725eb;border:1px solid #355470;border-radius:17px;text-align:center;box-shadow:0 16px 50px #0004}
+#message h2{font-size:20px;margin:0 0 8px}
+#message p{margin:0 0 15px;font-size:13px;color:#b6cddd}
+#status{position:absolute;z-index:3;bottom:14px;left:14px;padding:8px 12px;background:#071525e8;border:1px solid #355470;border-radius:10px;font-size:12px;color:#d3e6f2;pointer-events:none}
+#file{display:none}
+body.drop #message{outline:2px dashed #5fc0ff;outline-offset:6px}
+@media(max-width:650px){.header{display:block}.toolbar{margin-top:9px;display:inline-flex}.brand{display:inline-block}.brand strong{font-size:14px}.toolbar button{font-size:12px;padding:8px}#status{right:14px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"}}</script>
-<script>
-window.jorrobReady = false;
-function jorrobError(message) {
- if (window.jorrobReady) return;
- const overlay=document.getElementById('seedFallback');
- if (!overlay) return;
- overlay.style.display='block';
- overlay.innerHTML='<h2>Il 3D non si è avviato</h2><p>Il motore grafico potrebbe essere bloccato dalla rete o dal browser. '+String(message).replace(/[<>&"']/g,'')+'</p><button onclick="location.reload()">Riprova</button><p>Puoi comunque aprire la mappa seed in una scheda esterna dal pulsante a sinistra.</p>';
-}
-window.addEventListener('error',e=>jorrobError(e.message||'Errore di caricamento JavaScript.'));
-window.addEventListener('unhandledrejection',e=>jorrobError(String(e.reason||'Errore asincrono.')));
-setTimeout(()=>jorrobError('Il caricamento ha superato il limite di 15 secondi.'),15000);
-</script>
 </head>
 <body>
-<div id="app"></div>
-<div id="seedFallback" role="region" aria-label="Mappa dal seed" style="display:none">
- <div class="gatewayEyebrow">MINECRAFT BEDROCK · VISUALIZZAZIONE TERRENO</div>
- <h2>Esplora la tua isola in 3D</h2>
- <p>SeedMapView non consente la visualizzazione dentro questo sito. Aprilo in una nuova scheda: potrai esplorare il terreno generato dal seed, senza simulazioni inventate.</p>
- <a href="https://seedmapview.com/it/" target="_blank" rel="noopener noreferrer">Apri SeedMapView in una nuova scheda ↗</a>
- <div class="gatewayValues"><span>Seed<br><strong>-88920646104716782</strong></span><span>Centro area<br><strong>X -2120 · Z 866</strong></span></div>
- <ol><li>Seleziona <b>Bedrock</b> e la versione del tuo mondo.</li><li>Inserisci il seed e premi <b>Vedi la mappa</b>.</li><li>Vai a X -2120 e Z 866, poi scegli <b>3D</b>.</li></ol>
- <small>Per un modello interno al sito, importa il salvataggio del mondo nel pannello a sinistra.</small>
- </div>
-<div id="empty" style="display:none"></div>
-<header>
-<h1>Jorrob · Minecraft Base Planner <span style="font-size:11px;color:#87d5ff">3.0</span></h1>
-<div class="sub">Bedrock · Seed <b>-88920646104716782</b><br>Base <b>X -2087, Z 968</b> · centro area <b>X -2120, Z 866</b> · <b>401 × 401</b> blocchi</div>
-<div style="font-size:12px;color:#a5f0d1;margin:10px 0">Nuova vista 3D: progetto dei sei livelli della base. Lo schema è indicativo; non rappresenta il rilievo originale dell'isola.</div>
-<div class="tools" id="projectTools" style="display:flex;margin-bottom:12px">
- <button id="projectAll">Tutti i livelli</button>
- <button data-plan="0">Casa</button><button data-plan="1">Acquario</button><button data-plan="2">Zoo</button><button data-plan="3">Farm</button><button data-plan="4">Magazzino</button><button data-plan="5">Hub</button>
+<div id="scene"></div>
+<div class="header">
+ <div class="brand"><strong>Jorrob · Lettore GLB</strong><small id="modelName">isola_colori_400x400.glb</small></div>
+ <div class="toolbar"><button id="choose">Apri modello GLB</button><button class="secondary" id="reset" disabled>Reimposta vista</button></div>
 </div>
-<details class="import" id="importbox"><summary>Importa mondo salvato (opzionale)</summary><label for="worldfile"><b>Seleziona il file .mcworld o ZIP originale</b></label>
-<input id="worldfile" type="file" accept=".mcworld,.zip,application/zip">
-<small>Da Minecraft Bedrock su Windows: Gioca → matita del mondo → Esporta mondo e seleziona qui il .mcworld. In alternativa puoi importare uno ZIP della cartella del mondo. Il file viene letto nel browser, non caricato sul nostro server.</small></details>
-<div class="actions">
-<button id="seedBtn">Copia seed</button>
-<button id="coordBtn">Copia coordinate</button>
-<a class="btn primary" id="external" href="https://seedmapview.com/it/" target="_blank" rel="noopener noreferrer">Apri il sito 3D ↗</a><button id="backSeed" style="display:none">Torna alla mappa seed</button>
-</div>
-<div id="progress">Schema 3D attivo · ruota trascinando, ingrandisci con la rotella, seleziona un piano. Il vero terreno Bedrock si importa opzionalmente dal mondo.</div>
-<div id="meta"></div>
-<div class="tools" id="controls" hidden>
-<button id="home">Vista isola</button>
-<button id="top">Dall'alto</button>
-<button id="water">Acqua ON</button>
-<button id="grid">Griglia OFF</button>
-</div>
-<div class="sub" style="margin-top:12px">L’importazione opzionale dal salvataggio riproduce le <b>altezze reali della superficie, a risoluzione di un blocco</b>. I colori del suolo sono indicativi; grotte, costruzioni e singole texture non sono ancora riprodotti. Le parti del mondo non salvate restano vuote, senza riempimenti fittizi.</div>
-</header>
-<div id="marker">Progetto 3D · trascina per ruotare · rotella o pinch per zoom</div>
-<div id="legend">Terreno importato dal salvataggio · superficie a blocchi · colori indicativi</div>
+<input id="file" type="file" accept=".glb,model/gltf-binary">
+<div id="center"><div id="message"><h2>Visualizza la tua isola in 3D</h2><p id="hint">Seleziona il file GLB una sola volta. Il browser lo conserverà localmente per riaprirlo automaticamente nelle visite successive.</p><button id="select">Seleziona il GLB</button></div></div>
+<div id="status">In attesa del modello · trascina per ruotare · rotella o pinch per zoom</div>
+<script>
+window.addEventListener('error',e=>{let s=document.getElementById('status');if(s)s.textContent='Errore: '+(e.message||'caricamento 3D non riuscito')});
+window.addEventListener('unhandledrejection',e=>{let s=document.getElementById('status');if(s)s.textContent='Errore: '+(e.reason?.message||'caricamento modello')});
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-const SEED='-88920646104716782', CX=-2120, CZ=866, N=401, R=200, SEA=63;
-const el=id=>document.getElementById(id), position=el('marker'),prog=el('progress');
-let scene,camera,renderer,controls,terrain,waterMesh,gridOn=false,loaded=false,plannerGroup=null,plannerFloors=[],schematicWater=null;
-function report(msg,kind=''){prog.textContent=msg;prog.className=kind}
-function fail(e){console.error(e);report('Errore: '+(e?.message||String(e))+' — Se il mondo è grande, prova da PC.','error')}
-el('seedBtn').addEventListener('click',async()=>{await navigator.clipboard.writeText(SEED);report('Seed copiato. Apri la mappa esterna e seleziona Bedrock e la versione del tuo mondo.','success')});
-el('coordBtn').addEventListener('click',async()=>{await navigator.clipboard.writeText('-2120 866');report('Coordinate del centro copiate: X -2120, Z 866','success')});
-function init3D(){
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const $=id=>document.getElementById(id);
+let renderer,scene,camera,controls,current=null,defaultPosition=null,defaultTarget=null,busy=false;
+const loader=new GLTFLoader();
+function status(message){$('status').textContent=message}
+function showPrompt(title,detail){
+ $('center').style.display='grid';
+ $('message').querySelector('h2').textContent=title;
+ $('hint').textContent=detail;
+}
+function init(){
  if(renderer)return;
- scene=new THREE.Scene();scene.background=new THREE.Color(0x9cc6e3);scene.fog=new THREE.Fog(0x9cc6e3,650,1250);
- camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,.5,2000);
  renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
- renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
- el('app').appendChild(renderer.domElement);
- controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.065;
- controls.minDistance=10;controls.maxDistance=1000;controls.maxPolarAngle=Math.PI*.493;
- scene.add(new THREE.HemisphereLight(0xdff4ff,0x4f4738,2.1));
- const sun=new THREE.DirectionalLight(0xffefcf,2.2);sun.position.set(-200,330,150);scene.add(sun);
- const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
- renderer.domElement.addEventListener('click',event=>{
-  if(!terrain)return;
-  mouse.set(event.clientX/innerWidth*2-1,1-event.clientY/innerHeight*2);
-  ray.setFromCamera(mouse,camera);
-  const hit=ray.intersectObject(terrain,false)[0];
-  if(hit){const p=hit.point;position.textContent='X '+Math.floor(CX-R+p.x)+' · Y '+Math.round(p.y)+' · Z '+Math.floor(CZ-R+p.z)}
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+ renderer.outputColorSpace=THREE.SRGBColorSpace;
+ renderer.setSize(innerWidth,innerHeight);
+ $('scene').appendChild(renderer.domElement);
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x13253a);
+ camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,5000);
+ camera.position.set(550,330,550);
+ controls=new OrbitControls(camera,renderer.domElement);
+ controls.enableDamping=true;controls.dampingFactor=.07;
+ controls.minDistance=3;controls.maxDistance=3000;
+ scene.add(new THREE.HemisphereLight(0xedf7ff,0x718095,2));
+ const sun=new THREE.DirectionalLight(0xffefce,2.2);sun.position.set(-260,530,260);scene.add(sun);
+ addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight)
  });
- addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
- function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate()
+ function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}
+ animate();
 }
-function viewHome(){if(!camera)return;camera.position.set(730,390,730);controls.target.set(R,70,R);controls.update()}
-function viewTop(){if(!camera)return;camera.position.set(R,720,R+.01);controls.target.set(R,70,R);controls.update()}
-el('home').onclick=viewHome;el('top').onclick=viewTop;
-el('backSeed').onclick=()=>{if(renderer)renderer.domElement.style.display='block';el('backSeed').style.display='none';el('legend').style.display='none';el('controls').hidden=true;showPlanner();report('Schema progettuale 3D attivo. Il terreno autentico non è ancora stato importato.','success')};
-el('water').onclick=e=>{if(!waterMesh)return;waterMesh.visible=!waterMesh.visible;e.target.textContent='Acqua '+(waterMesh.visible?'ON':'OFF')};
-el('grid').onclick=e=>{gridOn=!gridOn;if(terrain){terrain.material.wireframe=gridOn;terrain.material.needsUpdate=true}e.target.textContent='Griglia '+(gridOn?'ON':'OFF')};
-function chunkKey(x,z,type){
- const bytes=new Uint8Array(9),dv=new DataView(bytes.buffer);
- dv.setInt32(0,x,true);dv.setInt32(4,z,true);bytes[8]=type;
- return String.fromCharCode(...bytes)
+function releaseObject(obj){
+ if(!obj)return;
+ obj.traverse(o=>{
+  if(o.geometry)o.geometry.dispose();
+  const mats=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];
+  mats.forEach(m=>{for(const key of ['map','normalMap','aoMap','emissiveMap'])m[key]?.dispose();m.dispose()});
+ })
 }
-function calculateChunkRanges(){
- return {x0:Math.floor((CX-R)/16),x1:Math.floor((CX+R)/16),
-         z0:Math.floor((CZ-R)/16),z1:Math.floor((CZ+R)/16)}
-}
-const yieldFrame=()=>new Promise(res=>setTimeout(res,0));
-async function extractHeights(db){
- const H=new Float32Array(N*N);H.fill(NaN);
- let found=0,processed=0,nonempty=0;
- const {x0,x1,z0,z1}=calculateChunkRanges();
- const total=(x1-x0+1)*(z1-z0+1);
- for(let cz=z0;cz<=z1;cz++)for(let cx=x0;cx<=x1;cx++){
-  let entry=await db.getKey(chunkKey(cx,cz,0x2b));
-  if(!entry||!entry.value)entry=await db.getKey(chunkKey(cx,cz,0x2d));
-  if(!entry||!entry.value)entry=await db.getKey(chunkKey(cx,cz,0x2e));
-  if(entry?.value?.length>=512){
-   const data=new DataView(entry.value.buffer,entry.value.byteOffset,entry.value.byteLength);
-   found++;
-   for(let lz=0;lz<16;lz++)for(let lx=0;lx<16;lx++){
-    const wx=cx*16+lx,wz=cz*16+lz, ix=wx-(CX-R),iz=wz-(CZ-R);
-    if(ix<0||iz<0||ix>=N||iz>=N)continue;
-    const raw=data.getUint16(2*(lz*16+lx),true);
-    // Bedrock Data3D stores elevation relative to the world bottom (-64).
-    const h=raw-64;
-    if(h>=-64&&h<=320){H[ix+iz*N]=h;nonempty++}
-   }
-  }
-  processed++;
-  if(processed%24===0){report('Leggo il mondo originale: '+processed+' / '+total+' chunk · '+found+' trovati');await yieldFrame()}
- }
- return {H,found,nonempty,total}
-}
-function colorAt(y){
- if(y<SEA-4)return 0x8a8077;
- if(y<=SEA+1)return 0xc6b783;
- if(y>115)return 0x7c8186;
- if(y>101)return 0x738d63;
- return 0x649d54
-}
-function showTerrain(H){
- init3D();
- if(plannerGroup){scene.remove(plannerGroup);plannerGroup=null}
- if(schematicWater){scene.remove(schematicWater);schematicWater=null}
- el('projectTools').style.display='none';
- el('seedFallback').style.display='none';position.style.display='block';
- renderer.domElement.style.display='block';el('backSeed').style.display='inline-block';
- if(terrain){scene.remove(terrain);terrain.geometry.dispose();terrain.material.dispose()}
- if(waterMesh){scene.remove(waterMesh);waterMesh.geometry.dispose();waterMesh.material.dispose()}
- const verts=[],cols=[],color=new THREE.Color();
- function quad(a,b,c,d,hex,shade){
-  color.setHex(hex).multiplyScalar(shade);
-  for(const p of [a,b,c,a,c,d]){verts.push(...p);cols.push(color.r,color.g,color.b)}
- }
- let count=0,low=999,high=-999;
- for(let iz=0;iz<N;iz++){
-  for(let ix=0;ix<N;ix++){
-   const y=H[ix+iz*N];if(!Number.isFinite(y))continue;
-   count++;low=Math.min(low,y);high=Math.max(high,y);
-   const col=colorAt(y),x=ix,z=iz;
-   quad([x,y,z],[x+1,y,z],[x+1,y,z+1],[x,y,z+1],col,1);
-   const e=ix+1<N?H[ix+1+iz*N]:NaN;
-   const w=ix>0?H[ix-1+iz*N]:NaN;
-   const s=iz+1<N?H[ix+(iz+1)*N]:NaN;
-   const n=iz>0?H[ix+(iz-1)*N]:NaN;
-   if(Number.isFinite(e)&&y>e)quad([x+1,y,z],[x+1,e,z],[x+1,e,z+1],[x+1,y,z+1],col,.68);
-   if(Number.isFinite(w)&&y>w)quad([x,y,z+1],[x,w,z+1],[x,w,z],[x,y,z],col,.73);
-   if(Number.isFinite(s)&&y>s)quad([x,y,z+1],[x+1,y,z+1],[x+1,s,z+1],[x,s,z+1],col,.81);
-   if(Number.isFinite(n)&&y>n)quad([x+1,y,z],[x,y,z],[x,n,z],[x+1,n,z],col,.65)
-  }
- }
- if(!count)throw Error('Nessuna altezza valida trovata.');
- const geo=new THREE.BufferGeometry();
- geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
- geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
- geo.computeVertexNormals();
- terrain=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
- scene.add(terrain);
- // The water is intentionally only a visualization, not a claim about actual fluid blocks.
- waterMesh=new THREE.Mesh(new THREE.PlaneGeometry(N,N),new THREE.MeshBasicMaterial({color:0x2467b5,transparent:true,opacity:.35,depthWrite:false,side:THREE.DoubleSide}));
- waterMesh.rotation.x=-Math.PI/2;waterMesh.position.set(R+.5,SEA+.2,R+.5);scene.add(waterMesh);
- controls.target.set(R,(low+high)/2,R);
- camera.position.set(R+400,Math.max(170,high+170),R+440);controls.update();
- el('empty').style.display='none';el('controls').hidden=false;el('legend').style.display='block';loaded=true;
- return {count,low,high}
-}
-
-function showPlanner(){
- init3D();
- if(plannerGroup){scene.remove(plannerGroup)}
- plannerGroup=new THREE.Group();scene.add(plannerGroup);
- plannerFloors=[];
- if(schematicWater){scene.remove(schematicWater);schematicWater=null}
- const X=R+33,Z=R+102;
- scene.background.setHex(0x101e31);scene.fog=new THREE.Fog(0x101e31,350,850);
- function mat(hex,opacity=1){return new THREE.MeshLambertMaterial({color:hex,transparent:opacity<1,opacity,side:THREE.DoubleSide,depthWrite:opacity===1})}
- function block(group,x,y,z,w,h,d,hex,opacity=1){
-  const obj=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(hex,opacity));
-  obj.position.set(X+x,y,Z+z);group.add(obj);return obj
- }
- function border(group,y,half=31,hex=0x8fcfff){
-  const pts=[[-half,-half],[half,-half],[half,half],[-half,half],[-half,-half]];
-  const points=pts.map(p=>new THREE.Vector3(X+p[0],y,Z+p[1]));
-  group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:hex})))
- }
- function sign(group,name,y,color){
-  const c=document.createElement('canvas');c.width=512;c.height=96;
-  const ctx=c.getContext('2d');
-  ctx.fillStyle='#061423';ctx.fillRect(0,0,512,96);
-  ctx.strokeStyle='#9ed2ed';ctx.strokeRect(2,2,508,92);
-  ctx.font='bold 39px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillStyle='#ffffff';ctx.fillText(name,256,50,495);
-  const tex=new THREE.CanvasTexture(c);
-  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
-  sprite.position.set(X-42,y+3,Z+2);sprite.scale.set(32,6,1);group.add(sprite)
- }
- const levels=[
-  {name:'CASA',y:71,color:0x53a8eb},{name:'ACQUARIO',y:53,color:0x32bed6},
-  {name:'ZOO',y:35,color:0xe2ab55},{name:'FARM',y:17,color:0x74c477},
-  {name:'MAGAZZINO',y:-1,color:0x9a9fe9},{name:'HUB TRASPORTI',y:-19,color:0xed81bb}
- ];
- for(let i=0;i<levels.length;i++){
-  const l=levels[i],fg=new THREE.Group();plannerGroup.add(fg);plannerFloors.push(fg);
-  block(fg,0,l.y,0,64,2.5,64,l.color,.82);
-  border(fg,l.y+1.6,32,l.color);
-  sign(fg,(i===0?'0':i===5?'-5':'-'+i)+' · '+l.name,l.y+5,l.color);
-  for(const x of [-30,30])for(const z of [-30,30])block(fg,x,l.y+7,z,1.6,12,1.6,l.color,.65);
-  if(i===0){
-   block(fg,2,l.y+8,0,36,13,31,0xb8d8e4,.42);block(fg,2,l.y+15,0,40,1,34,0x275676);
-   for(const x of [-15,-9,-3,3,9,15])block(fg,x,l.y+2,-10,2,2,9,0x3770a8,.8);
-   block(fg,-19,l.y+5,17,9,10,9,0x427b69,.8);
-  } else if(i===1){
-   for(let q=0;q<4;q++){
-    const bx=(q%2)*27-14,bz=Math.floor(q/2)*28-14;
-    block(fg,bx,l.y+7,bz,23,13,24,0x1a91e0,.25);
-    for(let k=0;k<6;k++)block(fg,bx-8+(k%3)*7,l.y+4+(k%2)*3,bz-4+Math.floor(k/3)*8,2,1,1,k%2?0xffaa4a:0xff5d7f,1);
-   }
-  } else if(i===2){
-   for(let q=0;q<6;q++){
-    const bx=(q%3)*20-20,bz=Math.floor(q/3)*26-13;
-    block(fg,bx,l.y+1.5,bz,17,1,22,q%2?0xa88e5f:0x6b9e57,.8);
-    for(const ox of [-7,7])block(fg,bx+ox,l.y+4,bz,0.8,7,20,0x9aaeb0,.55);
-    for(const oz of [-9,9])block(fg,bx,l.y+4,bz+oz,16,.8,.8,0x9aaeb0,.6);
-   }
-  } else if(i===3){
-   for(let q=0;q<6;q++){
-    const bx=-24+q*9;
-    block(fg,bx,l.y+2,0,6,2,48,q%2?0x3a8d45:0x9ab841);
-    for(let k=-4;k<=4;k++)block(fg,bx,l.y+3.8,k*5,4,1.8,2,q%2?0x8dd455:0xd1b94e);
-   }
-  } else if(i===4){
-   for(let q=0;q<7;q++)for(let z=-3;z<=3;z++){
-    if(q===3)continue;
-    block(fg,(q-3)*8,l.y+5,z*9,6,9,6,z%2?0xb48c5c:0xb6c9d6,.9);
-   }
-   block(fg,0,l.y+2,0,9,2,52,0x6be9d4);
-  } else if(i===5){
-   block(fg,0,l.y+2,0,31,4,31,0x6392bb,.72);
-   for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
-    const tube=new THREE.Mesh(new THREE.BoxGeometry(16,5,61),mat(0x3d93da,.68));
-    tube.position.set(X+Math.sin(a)*18,l.y+4,Z+Math.cos(a)*18);tube.rotation.y=a;fg.add(tube);
-   }
-   block(fg,0,l.y+6,0,13,2,13,0xeeb76e);
-  }
- }
- // Ascensore centrale, continuo tra tutti i livelli
- block(plannerGroup,0,31,0,7,119,7,0x6fdcf0,.18);
- for(let i=0;i<6;i++)block(plannerGroup,0,levels[i].y+3,0,8,1,8,0xf4d88e,.9);
- // Superficie acqua: piano scenografico per indicare la quota, NON simulazione del mondo.
- schematicWater=new THREE.Mesh(new THREE.PlaneGeometry(230,230),
- new THREE.MeshBasicMaterial({color:0x236dbb,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide}));
- schematicWater.rotation.x=-Math.PI/2;schematicWater.position.set(X,63,Z);scene.add(schematicWater);
- const axes=new THREE.GridHelper(210,21,0x43677f,0x355067);
- axes.position.set(X,-26,Z);plannerGroup.add(axes);
- camera.position.set(X+170,105,Z+188);controls.target.set(X,26,Z);controls.maxDistance=700;controls.update();
- el('seedFallback').style.display='none';el('controls').hidden=true;el('legend').style.display='block';
- el('legend').textContent='Schema di progetto, NON terreno Minecraft · 6 livelli · base X -2087 Z 968';
- el('projectTools').style.display='flex';
- document.querySelectorAll('[data-plan]').forEach(b=>b.classList.remove('active'));
- loaded=false;
-}
-function focusFloor(n){
- if(!plannerFloors.length)return;
- plannerFloors.forEach((obj,i)=>obj.visible=(n<0||i===n));
- if(schematicWater)schematicWater.visible=(n<0||n===0||n===1);
- const y=[71,53,35,17,-1,-19][n]??25, X=R+33,Z=R+102;
- controls.target.set(X,y,Z);camera.position.set(X+115,y+68,Z+125);controls.update();
- document.querySelectorAll('[data-plan]').forEach(b=>b.classList.toggle('active',Number(b.dataset.plan)===n));
-}
-el('projectAll').onclick=()=>{plannerFloors.forEach(obj=>obj.visible=true);if(schematicWater)schematicWater.visible=true;controls.target.set(R+33,25,R+102);camera.position.set(R+33+170,105,R+102+188);controls.update();document.querySelectorAll('[data-plan]').forEach(b=>b.classList.remove('active'))};
-document.querySelectorAll('[data-plan]').forEach(b=>b.onclick=()=>focusFloor(Number(b.dataset.plan)));
-showPlanner();
-window.jorrobReady=true;
-
-el('worldfile').addEventListener('change',async ev=>{
- const file=ev.target.files?.[0];if(!file)return;
- if(!/\.(zip|mcworld)$/i.test(file.name)){report('Seleziona uno ZIP del mondo o un file .mcworld.','error');return}
- el('worldfile').disabled=true;report('Apro il salvataggio originale ('+(file.size/1048576).toFixed(1)+' MB)…');
+async function display(blob,name,save=true){
+ if(busy)return;
+ busy=true;status('Apro '+name+'…');
+ $('modelName').textContent=name;
  try{
-  const {openMcworld}=await import('https://esm.sh/mcbe-leveldb-reader@5.0.1?bundle&target=es2022');
-  const db=await openMcworld(file);
-  await db.initLazy({maxKeysInMemory:50000});
-  report('Database trovato. Leggo soltanto i chunk della zona X -2120, Z 866…');
-  const result=await extractHeights(db);
-  if(result.found===0)throw Error('Nessun chunk salvato nell’area selezionata. Controlla che il mondo scelto sia quello giusto e che tu abbia esplorato questa zona.');
-  report('Disegno le superfici 3D a risoluzione di un blocco…');await yieldFrame();
-  const stats=showTerrain(result.H);
-  el('meta').style.display='block';
-  el('meta').textContent='Dati reali: '+result.found+' / '+result.total+' chunk disponibili, '+stats.count+' colonne su '+(N*N)+'. Quote Y da '+stats.low+' a '+stats.high+'. Zone non salvate lasciate vuote.';
-  report('Mondo importato. Il rilievo mostrato proviene dal salvataggio, non da un algoritmo inventato.','success')
- }catch(e){fail(e)}finally{el('worldfile').disabled=false}
-});
+  if(blob.size<20||blob.size>500*1024*1024)throw Error('Il file non è un GLB valido o è troppo grande.');
+  const data=await blob.arrayBuffer();
+  const view=new DataView(data);
+  if(view.getUint32(0,true)!==0x46546c67||view.getUint32(4,true)!==2)throw Error('Il file non è in formato GLB 2.0.');
+  init();
+  status('Caricamento geometria e materiali…');
+  const gltf=await loader.parseAsync(data,'');
+  if(!gltf.scene||!gltf.scene.children.length)throw Error('Il modello non contiene una scena 3D.');
+  if(current){scene.remove(current);releaseObject(current)}
+  current=gltf.scene;scene.add(current);
+  const bbox=new THREE.Box3().setFromObject(current);
+  const size=bbox.getSize(new THREE.Vector3()),center=bbox.getCenter(new THREE.Vector3());
+  const radius=Math.max(size.x,size.y,size.z,1);
+  const aspect=Math.max(.6,innerWidth/innerHeight);
+  const distance=Math.max(radius*1.55,radius/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*.95/Math.min(aspect,1));
+  camera.near=Math.max(.05,radius/3000);
+  camera.far=Math.max(3000,distance*10);
+  camera.updateProjectionMatrix();
+  defaultPosition=center.clone().add(new THREE.Vector3(distance*.92,distance*.57,distance*.92));
+  defaultTarget=center.clone();
+  resetView();
+  controls.minDistance=Math.max(.5,radius*.02);controls.maxDistance=Math.max(100,distance*4);
+  $('center').style.display='none';$('reset').disabled=false;
+  status(name+' · modello caricato · trascina per ruotare · zoom con rotella/pinch');
+  if(save)saveModel(blob,name).catch(e=>status(name+' · modello caricato (salvataggio locale non disponibile)'));
+ }catch(e){console.error(e);status('Errore di caricamento: '+(e.message||String(e)));showPrompt('Non riesco ad aprire il GLB','Controlla che sia un file .glb valido, poi riprova.')}
+ finally{busy=false}
+}
+function resetView(){
+ if(!defaultPosition)return;
+ camera.position.copy(defaultPosition);controls.target.copy(defaultTarget);controls.update()
+}
+$('reset').onclick=resetView;
+function pick(){$('file').click()}
+$('select').onclick=pick;$('choose').onclick=pick;
+$('file').addEventListener('change',e=>{const f=e.target.files?.[0];if(f)display(f,f.name);e.target.value=''});
+document.addEventListener('dragover',e=>{e.preventDefault();document.body.classList.add('drop')});
+document.addEventListener('dragleave',()=>document.body.classList.remove('drop'));
+document.addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('drop');const f=e.dataTransfer.files?.[0];if(f)display(f,f.name)});
+function getDB(){
+ return new Promise((resolve,reject)=>{
+  const req=indexedDB.open('jorrob-glb-viewer',1);
+  req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('models'))req.result.createObjectStore('models')};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)
+ })
+}
+async function saveModel(blob,name){
+ const db=await getDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('models','readwrite');
+  tx.objectStore('models').put({blob,name},'isola');
+  tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}
+ })
+}
+async function cachedModel(){
+ const db=await getDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('models','readonly');
+  const req=tx.objectStore('models').get('isola');
+  req.onsuccess=()=>{db.close();resolve(req.result)};
+  req.onerror=()=>{db.close();reject(req.error)}
+ })
+}
+(async()=>{
+ try{
+  const saved=await cachedModel();
+  if(saved?.blob){await display(saved.blob,saved.name||'isola_colori_400x400.glb',false);return}
+ }catch(e){console.warn('Cache locale non disponibile',e)}
+ // If the model is added to this GitHub Pages folder, load automatically.
+ try{
+  const response=await fetch('./isola_colori_400x400.glb',{cache:'no-cache'});
+  if(response.ok){
+   const blob=await response.blob();
+   if(blob.size>20){await display(blob,'isola_colori_400x400.glb',true);return}
+  }
+ }catch(e){console.warn('Modello non pubblicato nel repository',e)}
+ status('Seleziona il tuo file GLB per visualizzarlo. Verrà ricordato su questo dispositivo.')
+})();
 </script>
 </body>
 </html>

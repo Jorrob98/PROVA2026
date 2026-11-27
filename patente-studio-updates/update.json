@@ -1,8 +1,8 @@
 {
-  "version": "0.8.7",
-  "file": "PatenteStudio-Originale-LAN-0.8.7-Windows.exe",
-  "sha256": "af95a8a60cbf8e5df97645ee0fda6b3232f02e7f39101ce51964bd54e2fde862",
-  "notes": "Avanzamento reale del download, verifica, chiusura delle finestre dedicate e conferma del riavvio.",
-  "url": "https://raw.githubusercontent.com/Jorrob98/PROVA2026/main/patente-studio-updates/PatenteStudio-Originale-LAN-0.8.7-Windows.exe",
-  "signature": "ejWOZZzqW/uNHbpQJAjEttj6P5CxKWoP1Guut4KmGy0K7f8qNW9ORxiBEWQ1zGbWo7vdOOItX8Go0xM2tX5DDQ=="
+  "version": "0.8.8",
+  "file": "PatenteStudio-Originale-LAN-0.8.8-Windows.exe",
+  "sha256": "dd20110d3899d49519d0b7cfd92c133f8500f937e36ddf2fb5f9bc906ff71b62",
+  "notes": "Interfaccia ripulita e QR sicuro per la nuova app Android Patente Studio Tablet.",
+  "url": "https://raw.githubusercontent.com/Jorrob98/PROVA2026/main/patente-studio-updates/PatenteStudio-Originale-LAN-0.8.8-Windows.exe",
+  "signature": "p7an8lNyE8KwK+/3ukMMNp9M57MGqPoecHJeiac8p8ZmYgYySZv4670f19FI24MtLo8sZoW8vjdjGYgYqrXWAA=="
 }

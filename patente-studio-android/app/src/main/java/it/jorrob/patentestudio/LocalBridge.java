@@ -9,8 +9,8 @@ import java.util.*;
 final class LocalBridge extends NanoHTTPD {
  private final Pairing pair;
  private final SSLSocketFactory factory;
- private static final Set<String> GET_API=Set.of("/api/health","/api/session");
- private static final Set<String> POST_API=Set.of("/api/jobs","/api/analyze","/api/lan/claim","/api/lan/heartbeat");
+ private static final Set<String> GET_API=new HashSet<>(Arrays.asList("/api/health","/api/session"));
+ private static final Set<String> POST_API=new HashSet<>(Arrays.asList("/api/jobs","/api/analyze","/api/lan/claim","/api/lan/heartbeat"));
  LocalBridge(Pairing p)throws Exception{
   super("127.0.0.1",0);pair=p;
   SSLContext c=SSLContext.getInstance("TLS");
@@ -33,7 +33,7 @@ final class LocalBridge extends NanoHTTPD {
   HttpsURLConnection c=null;
   try {
    String path=s.getUri(),method=s.getMethod().name();Map<String,String> h=s.getHeaders();
-   if(!("127.0.0.1:"+getListeningPort()).equals(h.get("host"))||path.contains("..")||path.contains("\\")||s.getQueryParameterString()!=null)return fail(Response.Status.FORBIDDEN,"Richiesta non consentita");
+   if(!("127.0.0.1:"+getListeningPort()).equals(h.get("host"))||path.contains("..")||path.contains("\\")||(s.getQueryParameterString()!=null&&!s.getQueryParameterString().isEmpty()))return fail(Response.Status.FORBIDDEN,"Richiesta non consentita");
    String origin=h.get("origin");if(origin!=null&&!origin.equals(origin()))return fail(Response.Status.FORBIDDEN,"Origine non consentita");
    if("cross-site".equals(h.get("sec-fetch-site")))return fail(Response.Status.FORBIDDEN,"Origine non consentita");
    boolean api=path.startsWith("/api/");
@@ -48,7 +48,7 @@ final class LocalBridge extends NanoHTTPD {
     c.setRequestProperty("Content-Type","application/json");c.setRequestProperty("Origin",pair.remote());c.setDoOutput(true);c.setFixedLengthStreamingMode(len);
     try(OutputStream out=c.getOutputStream()){InputStream in=s.getInputStream();byte[] buf=new byte[16384];long left=len;while(left>0){int read=in.read(buf,0,(int)Math.min(buf.length,left));if(read<0)throw new IOException("Incomplete body");out.write(buf,0,read);left-=read;}}
    }
-   int code=c.getResponseCode();if(code>=300&&code<400){c.disconnect();return fail(Response.Status.BAD_GATEWAY,"Risposta non valida");}
+   int code=c.getResponseCode();if(code>=300&&code<400){c.disconnect();return fail(Response.Status.SERVICE_UNAVAILABLE,"Risposta non valida");}
    InputStream raw=code>=400?c.getErrorStream():c.getInputStream();if(raw==null)raw=new ByteArrayInputStream(new byte[0]);final HttpsURLConnection conn=c;
    InputStream data=new FilterInputStream(raw){@Override public void close()throws IOException{try{super.close();}finally{conn.disconnect();}}};
    Response.IStatus status=new Response.IStatus(){public int getRequestStatus(){return code;}public String getDescription(){return code+" Remote";}};

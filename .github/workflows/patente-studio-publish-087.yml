@@ -1,0 +1,36 @@
+name: Publish Patente Studio 0.8.7
+on:
+  push:
+    branches: [main]
+    paths: ['patente-studio-updates/staging-087/ready.json']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble and verify signed package
+        run: |
+          cd patente-studio-updates
+          python3 - <<'PY'
+          import pathlib, json, hashlib, base64
+          root = pathlib.Path('staging-087')
+          m = json.loads((root/'ready.json').read_text())
+          assert m['version'] == '0.8.7'
+          assert m['file'] == 'PatenteStudio-Originale-LAN-0.8.7-Windows.exe'
+          chunks = sorted(root.glob('part-*.b64'))
+          assert len(chunks) == 16, len(chunks)
+          data = base64.b64decode(''.join(p.read_text() for p in chunks), validate=True)
+          assert hashlib.sha256(data).hexdigest() == m['sha256'] == 'af95a8a60cbf8e5df97645ee0fda6b3232f02e7f39101ce51964bd54e2fde862'
+          pathlib.Path(m['file']).write_bytes(data)
+          pathlib.Path('update.json').write_text(json.dumps(m, indent=2)+'\n')
+          PY
+      - name: Publish verified executable and index atomically
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add patente-studio-updates/PatenteStudio-Originale-LAN-0.8.7-Windows.exe patente-studio-updates/update.json
+          git rm -r patente-studio-updates/staging-087
+          git commit -m "Publish signed Patente Studio 0.8.7"
+          git push

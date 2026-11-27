@@ -1,0 +1,2 @@
+# Patente Studio Android
+Android shell for the existing Patente Studio LAN interface. Requires Windows version 0.8.8 or later; pairing QR includes the exact SHA-256 TLS leaf certificate. No cloud photography upload, no browser certificate exceptions. Local loopback bridge only forwards allow-listed tablet requests to the pinned PC. Build unsigned release for private signing; do not use unsigned/debug builds for customer data. Physical camera and touch-signature testing required.

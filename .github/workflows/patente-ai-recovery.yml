@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   recover:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
           (async()=>{
             const root=path.resolve('recovery');
             const server=http.createServer((req,res)=>{
-              const name=new URL(req.url,'http://127.0.0.1').pathname;
+              res.setHeader('Content-Security-Policy',"default-src 'self'; img-src 'self' blob: data:; connect-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; object-src 'none'");const name=new URL(req.url,'http://127.0.0.1').pathname;
               if(name==='/'){res.setHeader('content-type','text/html');return res.end('<html><body>Offline AI synthetic test</body></html>')}
               const f=path.resolve(root,'.'+name);
               if(!f.startsWith(root+path.sep)||!fs.existsSync(f)){res.statusCode=404;return res.end()}

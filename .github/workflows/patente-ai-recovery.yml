@@ -9,7 +9,7 @@ permissions:
 jobs:
   recover:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -119,6 +119,41 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
           node inference.cjs
+          cp recovery/portrait.jpg /tmp/ps-portrait.jpg
+          cp recovery/provenance/offline-inference.json /tmp/ps-single-result.json
+          python3 -m pip install --quiet Pillow
+          curl --fail --location --retry 2 --max-time 60 'https://raw.githubusercontent.com/scikit-image/scikit-image/v0.24.0/skimage/data/astronaut.png' -o /tmp/ps-astronaut.png
+          curl --fail --location --retry 2 --max-time 60 'https://storage.googleapis.com/mediapipe-assets/woman_hands.jpg' -o /tmp/ps-woman.jpg
+          python3 - <<'PY'
+          from PIL import Image,ImageOps,ImageEnhance
+          from pathlib import Path
+          out=Path('/tmp/ps-fixtures');out.mkdir()
+          inputs={'portrait':'/tmp/ps-portrait.jpg','astronaut':'/tmp/ps-astronaut.png','woman':'/tmp/ps-woman.jpg'}
+          for name,filename in inputs.items():
+              im=Image.open(filename).convert('RGB')
+              # The public astronaut fixture is full upper-body; crop to a face-oriented portrait.
+              if name=='astronaut':
+                  w,h=im.size;im=im.crop((int(w*.22),int(h*.03),int(w*.59),int(h*.49)))
+              for variant,img in [('base',im),('mirror',ImageOps.mirror(im)),('dim',ImageEnhance.Brightness(im).enhance(.76)),('bright',ImageEnhance.Brightness(im).enhance(1.18))]:
+                  img.save(out/f'{name}-{variant}.jpg',quality=92)
+          PY
+          python3 - <<'PY'
+          import json,subprocess,pathlib,shutil,time
+          root=pathlib.Path('recovery')
+          rows=[]
+          for file in sorted(pathlib.Path('/tmp/ps-fixtures').glob('*.jpg')):
+              shutil.copyfile(file,root/'portrait.jpg')
+              result=root/'provenance/offline-inference.json'
+              result.unlink(missing_ok=True)
+              start=time.monotonic()
+              p=subprocess.run(['node','inference.cjs'],capture_output=True,text=True,timeout=100)
+              row={'fixture':file.stem,'seconds':round(time.monotonic()-start,2),'passed':p.returncode==0}
+              if row['passed']: row['metrics']=json.loads(result.read_text())
+              else: row['error']=p.stderr[-1200:]
+              rows.append(row);print(json.dumps(row),flush=True)
+          shutil.copyfile('/tmp/ps-single-result.json',root/'provenance/offline-inference.json')
+          (root/'provenance/multi-photo-test.json').write_text(json.dumps({'unique_source_photos':3,'variants':len(rows),'passed':sum(x['passed'] for x in rows),'cases':rows},indent=2))
+          PY
           rm recovery/portrait.jpg recovery/original-local-photo.js
       - uses: actions/upload-artifact@v4
         with:

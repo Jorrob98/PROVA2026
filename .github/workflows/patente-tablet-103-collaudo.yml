@@ -1,0 +1,73 @@
+name: Patente Studio Tablet 1.0.3 isolated debug build
+on:
+  push:
+    branches: [patente-tablet-103-collaudo]
+    paths: ['.github/workflows/patente-tablet-103-collaudo.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Patch published Android source, verify exact anchors and build isolated APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/psandroid /tmp/psout
+          unzip -q patente-studio-android/source-1.0.2.zip -d /tmp/psandroid
+          cd /tmp/psandroid
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,re,json
+          roots=list(Path('.').rglob('MainActivity.java'));assert len(roots)==1,roots
+          main=roots[0];bridge=main.with_name('LocalBridge.java')
+          def once(s,a,b):
+              assert s.count(a)==1,a
+              return s.replace(a,b,1)
+          hashes={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in (main,bridge)}
+          s=main.read_text()
+          s=once(s,' private int dp(int x)', ''' // Random per-install ID; persistent loopback port to preserve IndexedDB.
+           private SharedPreferences identity(){return getSharedPreferences("patente-device-identity",MODE_PRIVATE);}
+           private String stableId() throws Exception{SharedPreferences p=identity();String id=p.getString("id","");if(id.matches("[a-f0-9]{32}"))return id;id=java.util.UUID.randomUUID().toString().replace("-","");if(!p.edit().putString("id",id).commit())throw new Exception("Identificativo non salvato");return id;}
+           private int storedPort() throws Exception{int port=identity().getInt("bridge_port",0);if(port!=0&&(port<1024||port>65535))throw new Exception("Porta locale non valida");return port;}
+           private void persistPort(int port) throws Exception{if(port<1024||port>65535||!identity().edit().putInt("bridge_port",port).commit())throw new Exception("Porta locale non salvata");}
+           private String installedVersion() throws Exception{String v=getPackageManager().getPackageInfo(getPackageName(),0).versionName;if(v==null||!v.matches("[0-9.]{1,20}"))throw new Exception("Versione non valida");return v;}
+           private int dp(int x)''')
+          s=once(s,'try{bridge=new LocalBridge(p);bridge.start(15000,true);String base=bridge.origin();','try{String device=stableId(),appVersion=installedVersion();int port=storedPort();bridge=new LocalBridge(p,port);bridge.start(15000,true);if(port==0)persistPort(bridge.getListeningPort());else if(bridge.getListeningPort()!=port)throw new Exception("Origine locale cambiata");String base=bridge.origin();')
+          s=once(s,'web.loadUrl(base+"/#pair="+p.token);','web.loadUrl(base+"/#pair="+p.token+"&device="+device+"&client=android&version="+appVersion);')
+          s=once(s,'showPair("Impossibile avviare il collegamento locale.");','showPair("Impossibile avviare il collegamento locale. Riprova: la porta delle bozze non viene cambiata automaticamente.");')
+          main.write_text(s)
+          s=bridge.read_text()
+          s=once(s,'LocalBridge(Pairing p)throws Exception{','LocalBridge(Pairing p,int localPort)throws Exception{')
+          s=once(s,'super("127.0.0.1",0);pair=p;','super("127.0.0.1",localPort);pair=p;')
+          bridge.write_text(s)
+          gradles=list(Path('.').glob('**/app/build.gradle'));assert len(gradles)==1
+          f=gradles[0];s=f.read_text()
+          s,n=re.subn(r"versionCode\s+\d+","versionCode 4",s);assert n==1
+          s,n=re.subn(r"versionName\s+['\"][^'\"]+['\"]","versionName '1.0.3'",s);assert n==1
+          s=once(s,"defaultConfig {","defaultConfig {\n  applicationIdSuffix '.collaudo'")
+          f.write_text(s)
+          manifest=f.parent/'src/main/AndroidManifest.xml';s=manifest.read_text();s=once(s,'android:label="Patente Studio"','android:label="Patente Studio COLLAUDO"');manifest.write_text(s)
+          Path('/tmp/psout/source-provenance.json').write_text(json.dumps({'base':'source-1.0.2.zip','original_sha256':hashes,'patched_sha256':{f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in (main,bridge)},'test_application_id':'it.jorrob.patentestudio.collaudo','release':False},indent=2))
+          Path('/tmp/psout/project-root.txt').write_text(str(f.parent.parent.resolve()))
+          PY
+          cd "$(cat /tmp/psout/project-root.txt)"
+          gradle :app:assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/psout/PatenteStudio-Tablet-1.0.3-COLLAUDO.apk
+          sha256sum /tmp/psout/*.apk > /tmp/psout/APK-SHA256.txt
+          rm /tmp/psout/project-root.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tablet-103-isolated-debug
+          path: /tmp/psout
+          retention-days: 7
+          if-no-files-found: error

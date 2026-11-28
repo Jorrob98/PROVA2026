@@ -50,6 +50,57 @@ jobs:
           shutil.copyfile(src,'recovery/reference-088.exe')
           shutil.copyfile(root/'update.json','recovery/provenance/reference-update.json')
           PY
+      - name: Test offline inference in Chromium with official portrait fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 --max-time 120 https://storage.googleapis.com/mediapipe-assets/portrait.jpg -o recovery/portrait.jpg
+          npm install --no-save --ignore-scripts playwright@1.51.1
+          npx playwright install --with-deps chromium
+          cat > inference.cjs <<'JS'
+          const {chromium}=require('playwright');const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+          (async()=>{
+            const root=path.resolve('recovery');
+            const server=http.createServer((req,res)=>{
+              const name=new URL(req.url,'http://127.0.0.1').pathname;
+              if(name==='/'){res.setHeader('content-type','text/html');return res.end('<html><body>Offline AI synthetic test</body></html>')}
+              const f=path.resolve(root,'.'+name);
+              if(!f.startsWith(root+path.sep)||!fs.existsSync(f)){res.statusCode=404;return res.end()}
+              const types={'.mjs':'text/javascript','.js':'text/javascript','.wasm':'application/wasm','.jpg':'image/jpeg','.tflite':'application/octet-stream'};
+              res.setHeader('Content-Type',types[path.extname(f)]||'application/octet-stream');res.setHeader('Content-Security-Policy',"default-src 'self'; img-src 'self' blob: data:; connect-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; object-src 'none'");fs.createReadStream(f).pipe(res);
+            });
+            await new Promise(r=>server.listen(0,'127.0.0.1',r));
+            const origin='http://127.0.0.1:'+server.address().port;let browser;
+            try{
+              browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});const page=await browser.newPage();const attempted=[];
+              await page.route('**/*',r=>{if(r.request().url().startsWith(origin+'/'))return r.continue();attempted.push(r.request().url());return r.abort()});
+              await page.goto(origin+'/');
+              const result=await page.evaluate(async()=>{
+                const lib=await import('/ai/vision_bundle.mjs'),files=await lib.FilesetResolver.forVisionTasks('/ai/wasm');
+                const image=new Image();image.src='/portrait.jpg';await image.decode();
+                const c=document.createElement('canvas');c.width=260;c.height=315;const ctx=c.getContext('2d');const scale=Math.max(c.width/image.width,c.height/image.height);ctx.drawImage(image,(c.width-image.width*scale)/2,(c.height-image.height*scale)/2,image.width*scale,image.height*scale);
+                const fd=await lib.FaceDetector.createFromOptions(files,{baseOptions:{modelAssetPath:'/ai/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'IMAGE',minDetectionConfidence:0.35});
+                let faces;try{faces=fd.detect(c).detections.length}finally{fd.close()}
+                const seg=await lib.ImageSegmenter.createFromOptions(files,{baseOptions:{modelAssetPath:'/ai/selfie_multiclass_256x256.tflite',delegate:'CPU'},runningMode:'IMAGE',outputConfidenceMasks:true,outputCategoryMask:false});
+                let output;
+                try{
+                  const r=seg.segment(c);try{
+                    const masks=r.confidenceMasks;const bg=masks[0],arr=bg.getAsFloat32Array();let foreground=0,background=0;
+                    for(const v of arr){if(!Number.isFinite(v))throw Error('non-finite mask');if(v>0.85)background++;if(v<0.15)foreground++}
+                    const im=ctx.getImageData(0,0,c.width,c.height),before=new Uint8ClampedArray(im.data);let whitened=0;
+                    for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){const i=(y*c.width+x)*4,v=arr[Math.min(bg.height-1,Math.floor(y*bg.height/c.height))*bg.width+Math.min(bg.width-1,Math.floor(x*bg.width/c.width))];if(v>0.85){for(let j=0;j<3;j++)im.data[i+j]=255;if(before[i]!==255||before[i+1]!==255||before[i+2]!==255)whitened++}}
+                    output={faces,maskCount:masks.length,width:bg.width,height:bg.height,foreground,background,whitened};
+                  }finally{r.close?.()}
+                }finally{seg.close()}
+                return output;
+              });
+              if(result.faces<1||result.maskCount!==6||!result.foreground||!result.background||!result.whitened||attempted.length)throw Error(JSON.stringify({result,attempted}));
+              fs.writeFileSync('recovery/provenance/offline-inference.json',JSON.stringify({...result,externalRequests:attempted.length,fixture:'https://storage.googleapis.com/mediapipe-assets/portrait.jpg'},null,2));console.log(result);
+            }finally{await browser?.close();server.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node inference.cjs
+          rm recovery/portrait.jpg
       - uses: actions/upload-artifact@v4
         with:
           name: patente-ai-recovery-reference

@@ -247,3 +247,38 @@ edit(p,[
 ('try{preflight(pc);runOnUiThread(()->{if(seq!=generation||isFinishing())return;try{saveVerifiedPc(pc);}catch(Exception ignored){}verified=true;openWeb(pc);});}','try{Pc ready=resolvePc(pc);runOnUiThread(()->{if(seq!=generation||isFinishing())return;active=ready;try{saveVerifiedPc(ready);}catch(Exception ignored){}verified=true;if(!ready.host.equals(pc.host))Toast.makeText(this,"Postazione ritrovata in sicurezza al nuovo indirizzo.",Toast.LENGTH_LONG).show();openWeb(ready);});}')
 ])
 print("Bounded LAN discovery with previously authenticated TLS public key prepared")
+
+
+# Presentation only. Keep all original action callbacks and networking intact.
+p=java/'MainActivity.java'
+edit(p,[
+('private static final int GREEN=0xff153c70, BACK=0xffedf2f8;', 'private static final int GREEN=0xff16375d, BACK=0xffeef3f8; private static final int BLUE=0xff245da8, BORDER=0xffd5e0ed, MUTED=0xff516880;'),
+('bar.setPadding(dp(16),dp(8),dp(12),dp(8));','bar.setPadding(dp(20),dp(10),dp(16),dp(10));'),
+('title.setTextSize(21);','title.setTextSize(22);title.setGravity(Gravity.CENTER_VERTICAL);'),
+('bar.addView(title,new LinearLayout.LayoutParams(0,dp(44),1));','bar.addView(title,new LinearLayout.LayoutParams(0,dp(48),1));'),
+('change.setText("Cambia PC");','change.setText("Cambia PC");styleButton(change,false);'),
+('private Button button(String text,Runnable run){Button b=new Button(this);b.setText(text);b.setAllCaps(false);b.setOnClickListener(v->run.run());return b;}','''private android.graphics.drawable.GradientDrawable surface(int fill,int line,int radius){android.graphics.drawable.GradientDrawable d=new android.graphics.drawable.GradientDrawable();d.setColor(fill);d.setCornerRadius(dp(radius));if(line!=0)d.setStroke(dp(1),line);return d;}
+ private void styleButton(Button b,boolean primary){b.setAllCaps(false);b.setTextSize(15);b.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));b.setTextColor(primary?Color.WHITE:GREEN);b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(12),dp(10),dp(12),dp(10));b.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33245da8),surface(primary?BLUE:0xfff4f7fb,primary?0:BORDER,12),null));}
+ private Button button(String text,Runnable run){Button b=new Button(this);b.setText(text);styleButton(b,true);b.setOnClickListener(v->run.run());return b;}
+ private Button secondary(String text,Runnable run){Button b=button(text,run);styleButton(b,false);return b;}
+ private void spaced(LinearLayout parent,View child,int margin){LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.bottomMargin=dp(margin);parent.addView(child,params);}
+ private LinearLayout homePanel(){return new LinearLayout(this){@Override protected void onMeasure(int w,int h){int max=dp(800);int width=View.MeasureSpec.getSize(w);super.onMeasure(View.MeasureSpec.makeMeasureSpec(Math.min(width,max),View.MeasureSpec.EXACTLY),h);}};}
+'''),
+('LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(24),dp(24),dp(24),dp(24));scroll.addView(panel);body.addView(scroll);panel.addView(label("Scegli una postazione",24));panel.addView(label("Collega il tablet scansionando il QR mostrato in Patente Studio sul PC (versione 0.8.8 o successiva).",16));panel.addView(button("Scansiona QR del PC",','LinearLayout panel=homePanel();panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(20),dp(20),dp(20),dp(20));scroll.setFillViewport(true);android.widget.FrameLayout.LayoutParams center=new android.widget.FrameLayout.LayoutParams(-1,-2,Gravity.TOP|Gravity.CENTER_HORIZONTAL);scroll.addView(panel,center);body.addView(scroll,new LinearLayout.LayoutParams(-1,-1));TextView heading=label("Postazioni",28);heading.setTypeface(null,android.graphics.Typeface.BOLD);spaced(panel,heading,6);TextView hint=label("Seleziona un PC o aggiungilo tramite QR (PC 0.8.8 o successivo).",14);hint.setTextColor(MUTED);spaced(panel,hint,14);spaced(panel,button("Scansiona QR del PC",'),
+('.setOrientationLocked(false).initiateScan()));Iterator<String> it=', '.setOrientationLocked(false).initiateScan()),18);Iterator<String> it='),
+('LinearLayout row=new LinearLayout(this);LinearLayout details=new LinearLayout(this);details.setOrientation(LinearLayout.VERTICAL);details.addView(button(pcName(pc),()->connect(pc)));TextView availability=label("Verifica connessione…",12);details.addView(availability);indicators.put(pc,availability);row.addView(details,new LinearLayout.LayoutParams(0,-2,1));row.addView(button("Rinomina",()->rename(pc)));row.addView(button("Rimuovi",','LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(14),dp(12),dp(14),dp(12));card.setBackground(surface(Color.WHITE,BORDER,16));TextView pcTitle=label(pcName(pc),19);pcTitle.setTypeface(null,android.graphics.Typeface.BOLD);card.addView(pcTitle);TextView availability=label("● Verifica connessione…",14);availability.setTextColor(MUTED);spaced(card,availability,9);indicators.put(pc,availability);spaced(card,button("Collega",()->connect(pc)),9);LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);LinearLayout.LayoutParams left=new LinearLayout.LayoutParams(0,-2,1);left.rightMargin=dp(8);row.addView(secondary("Rinomina",()->rename(pc)),left);row.addView(secondary("Rimuovi",'),
+('saved.remove(host);persist();showHome();}).show()));panel.addView(row);','saved.remove(host);persist();showHome();}).show()),new LinearLayout.LayoutParams(0,-2,1));card.addView(row);spaced(panel,card,12);'),
+('panel.addView(button("Diagnostica",this::diagnostics));panel.addView(button("Modalità tablet dedicato",this::toggleDedicated));panel.addView(button("Controlla aggiornamenti",()->updates.check(false,()->active==null&&!isFinishing())));panel.addView(label("Versione "+updates.version()+" • Foto e firme rimangono sulla rete locale dell\\'agenzia.",14));','panel.addView(label("Strumenti",18));spaced(panel,secondary("Diagnostica",this::diagnostics),8);spaced(panel,secondary("Modalità tablet dedicato",this::toggleDedicated),8);spaced(panel,secondary("Controlla aggiornamenti",()->updates.check(false,()->active==null&&!isFinishing())),8);TextView foot=label("Versione "+updates.version()+" • Rete locale",12);foot.setTextColor(MUTED);panel.addView(foot);'),
+('view.setText(reachable?"Disponibile • "+elapsed+" ms (verifica PC)":"Non raggiungibile / QR da verificare");view.setTextColor(reachable?0xff12794c:0xff9a4e19);','view.setText(reachable?"● Disponibile · "+elapsed+" ms":"● Non raggiungibile / QR da verificare");view.setTextColor(reachable?0xff12794c:0xffb42338);')
+])
+p=root/'app/src/main/res/drawable/app_icon.xml'
+s=p.read_text(encoding='utf-8').replace('#0A4347','#16375D').replace('#0A6268','#245DA8')
+p.write_text(s,encoding='utf-8')
+p=root/'app/src/main/res/values/styles.xml'
+s=p.read_text(encoding='utf-8').replace('#153C70','#16375D').replace('#23538E','#245DA8')
+p.write_text(s,encoding='utf-8')
+# New build number permits updating a previously installed 1.0.3 candidate without uninstalling.
+edit(root/'app/build.gradle',[("versionCode 4; versionName '1.0.3'","versionCode 5; versionName '1.0.4'")])
+edit(java/'TabletUpdates.java',[('return "1.0.3";','return "1.0.4";')])
+# User agent is deliberately preserved to avoid changing compatibility behavior.
+print("Visual-only Android candidate prepared")

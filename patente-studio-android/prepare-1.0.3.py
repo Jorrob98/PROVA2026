@@ -184,3 +184,66 @@ edit(p,[
 ('if(sender==web&&active==pc&&verified&&!isFinishing())try{reply.postMessage(response.toString());}','if(sender==web&&active==pc&&verified&&!isFinishing())try{if(response.optBoolean("ok")&&response.optBoolean("empty")&&chooser==null&&photoFile!=null){photoFile.delete();photoFile=null;photoUri=null;}reply.postMessage(response.toString());}')
 ])
 print("Bounded reconnect and post-receipt capture cleanup prepared")
+
+
+# DHCP recovery: learn the TLS public key only after a fully verified QR connection.
+# UDP replies are address hints, never authorization. TLS possession + SAN + token remain mandatory.
+p=java/'MainActivity.java'
+edit(p,[
+('String host,pin,token;\n  Pc(String host,String pin,String token){this.host=host;this.pin=pin;this.token=token;}','String host,pin,token,keyPin;\n  Pc(String host,String pin,String token){this(host,pin,token,"");}\n  Pc(String host,String pin,String token,String keyPin){this.host=host;this.pin=pin;this.token=token;this.keyPin=keyPin==null?"":keyPin;}'),
+('return new JSONObject().put("pin",pin).put("token",token);','return new JSONObject().put("pin",pin).put("token",token).put("keyPin",keyPin);'),
+('new Pc(host,obj.optString("pin"),obj.optString("token"))','new Pc(host,obj.optString("pin"),obj.optString("token"),obj.optString("keyPin"))'),
+('private static void validateLeaf(X509Certificate c,Pc pc)throws Exception{','private static String shaHex(byte[] raw)throws Exception{StringBuilder out=new StringBuilder();for(byte b:MessageDigest.getInstance("SHA-256").digest(raw))out.append(String.format(Locale.ROOT,"%02x",b&255));return out.toString();}\n private static boolean equalPin(String a,String b){return b!=null&&b.matches("[a-f0-9]{64}")&&MessageDigest.isEqual(a.getBytes(StandardCharsets.US_ASCII),b.getBytes(StandardCharsets.US_ASCII));}\n private static void validateLeaf(X509Certificate c,Pc pc)throws Exception{'),
+('if(!MessageDigest.isEqual(s.toString().getBytes(StandardCharsets.US_ASCII),pc.pin.getBytes(StandardCharsets.US_ASCII)))throw new CertificateException("Certificato diverso dal QR");','if(!equalPin(s.toString(),pc.pin)&&!equalPin(shaHex(c.getPublicKey().getEncoded()),pc.keyPin))throw new CertificateException("Identità TLS della postazione diversa dal QR");'),
+('SSLSocketFactory factory,boolean auth)throws Exception','SSLSocketFactory factory,boolean auth,int timeout)throws Exception'),
+('c.setConnectTimeout(6000);c.setReadTimeout(6000);','c.setConnectTimeout(timeout);c.setReadTimeout(timeout);'),
+('private static void preflight(Pc pc)throws Exception{if(!lanHost(pc.host))','private static Pc preflight(Pc pc)throws Exception{return preflight(pc,6000);}\n private static Pc preflight(Pc pc,int timeout)throws Exception{final java.util.concurrent.atomic.AtomicReference<X509Certificate> leaf=new java.util.concurrent.atomic.AtomicReference<>();if(!lanHost(pc.host))'),
+('validateLeaf(c[0],pc);}catch(Exception e){throw new CertificateException(e);}','validateLeaf(c[0],pc);leaf.set(c[0]);}catch(Exception e){throw new CertificateException(e);}'),
+('ctx.getSocketFactory(),false);','ctx.getSocketFactory(),false,timeout);'),
+('ctx.getSocketFactory(),true);','ctx.getSocketFactory(),true,timeout);'),
+('if(!"capture".equals(role.optString("role")))throw new IOException("QR non autorizzato per tablet");}','if(!"capture".equals(role.optString("role")))throw new IOException("QR non autorizzato per tablet");X509Certificate cert=leaf.get();if(cert==null)throw new CertificateException("Identità della postazione non disponibile");String kp=h.optBoolean("ip_recovery",false)?shaHex(cert.getPublicKey().getEncoded()):"";return new Pc(pc.host,shaHex(cert.getEncoded()),pc.token,kp);}'),
+('private void connect(Pc pc){connect(pc,0);}','''private Pc resolvePc(Pc known)throws Exception{
+  try{return preflight(known);}catch(Exception initial){
+   if(!known.keyPin.matches("[a-f0-9]{64}"))throw initial;
+   for(String host:discoverAddresses()){
+    if(host.equals(known.host))continue;
+    try{Pc moved=preflight(new Pc(host,known.pin,known.token,known.keyPin),1800);if(equalPin(moved.keyPin,known.keyPin))return moved;}catch(Exception ignored){}
+   }
+   throw initial;
+  }
+ }
+ private Set<String> discoverAddresses(){
+  Set<String> found=new LinkedHashSet<>();
+  android.net.ConnectivityManager cm=(android.net.ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
+  android.net.Network network=cm==null?null:cm.getActiveNetwork();
+  android.net.NetworkCapabilities cap=network==null?null:cm.getNetworkCapabilities(network);
+  if(cap==null||cap.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)||(!cap.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)&&!cap.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)))return found;
+  android.net.LinkProperties links=cm.getLinkProperties(network);if(links==null)return found;
+  try(DatagramSocket socket=new DatagramSocket()){
+   network.bindSocket(socket);socket.setBroadcast(true);
+   byte[] nonce=new byte[16];new java.security.SecureRandom().nextBytes(nonce);StringBuilder id=new StringBuilder();for(byte b:nonce)id.append(String.format(Locale.ROOT,"%02x",b&255));
+   byte[] query=("PSDISCOVER1 "+id).getBytes(StandardCharsets.US_ASCII);
+   Set<InetAddress> destinations=new LinkedHashSet<>();
+   for(android.net.LinkAddress link:links.getLinkAddresses()){
+    InetAddress ip=link.getAddress();int prefix=link.getPrefixLength();if(!(ip instanceof Inet4Address)||!lanHost(ip.getHostAddress())||prefix<8||prefix>30)continue;
+    byte[] b=ip.getAddress();int n=((b[0]&255)<<24)|((b[1]&255)<<16)|((b[2]&255)<<8)|(b[3]&255);int broadcast=n|(-1>>>prefix);
+    destinations.add(InetAddress.getByAddress(new byte[]{(byte)(broadcast>>>24),(byte)(broadcast>>>16),(byte)(broadcast>>>8),(byte)broadcast}));
+   }
+   if(destinations.isEmpty())return found;
+   for(InetAddress dest:destinations)socket.send(new DatagramPacket(query,query.length,dest,18887));
+   long until=SystemClock.elapsedRealtime()+1600;
+   while(found.size()<6&&SystemClock.elapsedRealtime()<until){
+    socket.setSoTimeout((int)Math.max(1,until-SystemClock.elapsedRealtime()));
+    byte[] buf=new byte[128];DatagramPacket response=new DatagramPacket(buf,buf.length);
+    try{socket.receive(response);}catch(SocketTimeoutException e){break;}
+    String host=response.getAddress().getHostAddress();
+    if(response.getPort()==18887&&lanHost(host)&&response.getLength()==query.length&&MessageDigest.isEqual(query,Arrays.copyOf(buf,response.getLength())))found.add(host);
+   }
+  }catch(Exception ignored){}
+  return found;
+ }
+ private void connect(Pc pc){connect(pc,0);}'''),
+('String name=pcName(pc);List<String> obsolete=new ArrayList<>();','JSONObject collision=saved.optJSONObject(pc.host);if(collision!=null&&!pc.token.equals(collision.optString("token")))return;\n  String name=pcName(pc);List<String> obsolete=new ArrayList<>();'),
+('try{preflight(pc);runOnUiThread(()->{if(seq!=generation||isFinishing())return;try{saveVerifiedPc(pc);}catch(Exception ignored){}verified=true;openWeb(pc);});}','try{Pc ready=resolvePc(pc);runOnUiThread(()->{if(seq!=generation||isFinishing())return;active=ready;try{saveVerifiedPc(ready);}catch(Exception ignored){}verified=true;if(!ready.host.equals(pc.host))Toast.makeText(this,"Postazione ritrovata in sicurezza al nuovo indirizzo.",Toast.LENGTH_LONG).show();openWeb(ready);});}')
+])
+print("Bounded LAN discovery with previously authenticated TLS public key prepared")

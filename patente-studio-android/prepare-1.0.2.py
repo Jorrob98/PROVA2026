@@ -34,4 +34,11 @@ edit(java/'MainActivity.java',[
 ('if(req==303){if(grants.length>0&&grants[0]==PackageManager.PERMISSION_GRANTED)captureNative();','if(req==303){if(chooser!=null&&verified&&grants.length>0&&grants[0]==PackageManager.PERMISSION_GRANTED)captureNative();'),
 ('@Override protected void onDestroy(){generation++;verified=false;stopWeb();', '@Override protected void onResume(){super.onResume();if(updates!=null)updates.resume();}\n @Override protected void onDestroy(){generation++;verified=false;if(updates!=null)updates.close();stopWeb();')
 ])
+# Android lint requires named constants instead of raw integers.
+p=java/'MainActivity.java'
+s=p.read_text(encoding='utf-8')
+assert s.count('.setOrientation(1)')==3
+s=s.replace('.setOrientation(1)', '.setOrientation(LinearLayout.VERTICAL)')
+s=s.replace('setTypeface(null,1)', 'setTypeface(null,android.graphics.Typeface.BOLD)')
+p.write_text(s,encoding='utf-8')
 print("Patente Studio 1.0.2 source prepared")

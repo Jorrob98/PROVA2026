@@ -67,3 +67,31 @@ final class PcVault {
 }
 ''',encoding='utf-8')
 print("Patente Studio 1.0.3 tablet source prepared")
+
+
+# Additional stability and recovery hardening (on-device verification still required).
+p=java/'MainActivity.java'
+s=p.read_text(encoding='utf-8')
+def once(a,b):
+    global s
+    assert s.count(a)==1, a[:80]
+    s=s.replace(a,b,1)
+once('prefs.edit().putString("pcs-secure",cipher).remove("pcs").apply();','String prior=prefs.getString("pcs-secure",null);SharedPreferences.Editor editor=prefs.edit();if(prior!=null)editor.putString("pcs-secure-previous",prior);if(!editor.putString("pcs-secure",cipher).remove("pcs").commit())throw new IOException("Impostazioni non salvate");')
+once('saved=new JSONObject();Toast.makeText(this,"Archivio postazioni non accessibile: ripeti il QR.",Toast.LENGTH_LONG).show();','try{String previous=prefs.getString("pcs-secure-previous",null);if(previous==null)throw new IOException();saved=new JSONObject(PcVault.decrypt(previous));if(!prefs.edit().putString("pcs-secure",previous).commit())throw new IOException();Toast.makeText(this,"Postazioni recuperate dalla copia precedente.",Toast.LENGTH_LONG).show();}catch(Exception ignored){saved=new JSONObject();Toast.makeText(this,"Archivio postazioni non accessibile: ripeti il QR.",Toast.LENGTH_LONG).show();}')
+once('boolean ok=false;try{preflight(pc);ok=true;}catch(Exception ignored){}final boolean reachable=ok;runOnUiThread(()->{if(id!=refreshId','long begin=SystemClock.elapsedRealtime();boolean ok=false;try{preflight(pc);ok=true;}catch(Exception ignored){}final long elapsed=SystemClock.elapsedRealtime()-begin;final boolean reachable=ok;runOnUiThread(()->{if(id!=refreshId')
+once('view.setText(reachable?"Disponibile":"Non raggiungibile / QR da verificare");','view.setText(reachable?"Disponibile • "+elapsed+" ms (verifica PC)":"Non raggiungibile / QR da verificare");')
+once('new AlertDialog.Builder(this).setTitle("Diagnostica").setMessage("Versione: "+updates.version()', 'String report="Versione: "+updates.version()')
+once('+" MB\\nI controlli non registrano dati dei clienti.").setPositiveButton("OK",null).show();}', '+" MB\\nI controlli non registrano dati dei clienti.";new AlertDialog.Builder(this).setTitle("Diagnostica").setMessage(report).setNeutralButton("Esporta",(d,w)->{Intent share=new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,report);startActivity(Intent.createChooser(share,"Esporta diagnostica"));}).setPositiveButton("OK",null).show();}')
+once('private void captureNative(){try{File dir=', 'private void captureNative(){try{if(getCacheDir().getUsableSpace()<32L*1024*1024){cancelChooser();new AlertDialog.Builder(this).setMessage("Spazio libero insufficiente per acquisire la fotografia. Libera memoria sul tablet.").setPositiveButton("OK",null).show();return;}File dir=')
+once('panel.addView(button("Controlla aggiornamenti",()->updates.check()));','panel.addView(button("Controlla aggiornamenti",()->updates.check(false,()->active==null&&!isFinishing())));')
+once('if(!APP_ID.equals(h.optString("app_id")))throw new IOException("Non è un PC Patente Studio");','if(!APP_ID.equals(h.optString("app_id")))throw new IOException("Non è un PC Patente Studio");String ver=h.optString("version","");if(ver.matches("[0-9]{1,5}\\\\.[0-9]{1,5}\\\\.[0-9]{1,5}")){String[] v=ver.split("\\\\.");if(Integer.parseInt(v[0])==0&&(Integer.parseInt(v[1])<8||(Integer.parseInt(v[1])==8&&Integer.parseInt(v[2])<8)))throw new IOException("Aggiorna Patente Studio PC alla 0.8.8 o successiva");}')
+once('web.loadUrl(pc.origin()+"/#pair="+pc.token);','WebView opened=web;int current=generation;new Handler(Looper.getMainLooper()).postDelayed(()->{if(generation==current&&web==opened&&active==pc&&!isFinishing()&&opened.getProgress()<100){Toast.makeText(this,"Caricamento lento. Verifica Wi-Fi e PC; la schermata non viene ricaricata automaticamente.",Toast.LENGTH_LONG).show();}},18000);web.loadUrl(pc.origin()+"/#pair="+pc.token);')
+p.write_text(s,encoding='utf-8')
+edit(java/'TabletUpdates.java',[
+('if(busy||closed)return;busy=true;cancelled=false;', 'if(busy||closed)return;if(a.getCacheDir().getUsableSpace()<size+32L*1024*1024){message("Aggiornamento","Spazio libero insufficiente. Libera memoria e riprova.");return;}busy=true;cancelled=false;'),
+('.setPositiveButton("Installa",(d,w)->download(v,name,sha,size,code))','.setPositiveButton("Installa",(d,w)->{if(available.getAsBoolean())download(v,name,sha,size,code);})')
+])
+p=root/'app/src/main/res/values/styles.xml'
+s=p.read_text(encoding='utf-8').replace('#0A6268','#23538E').replace('#0A4347','#153C70')
+p.write_text(s,encoding='utf-8')
+print("Additional tablet stability changes prepared")

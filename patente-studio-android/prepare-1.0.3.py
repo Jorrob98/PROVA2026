@@ -163,3 +163,24 @@ edit(p,[
 ('probes.shutdownNow();generation++;','probes.shutdownNow();draftIO.shutdown();generation++;')
 ])
 print("Origin-restricted draft vault and Android screen pinning prepared")
+
+
+# Reconnect only on temporary transport errors, never bypass a new certificate.
+p=java/'MainActivity.java'
+edit(p,[
+('private void connect(Pc pc){stopMonitor();int seq=++generation;', '''private void connect(Pc pc){connect(pc,0);}
+ private static boolean temporaryNetworkFailure(Throwable e){for(Throwable t=e;t!=null;t=t.getCause()){if(t instanceof javax.net.ssl.SSLException||t instanceof java.security.cert.CertificateException)return false;if(t instanceof java.net.ConnectException||t instanceof java.net.SocketTimeoutException||t instanceof java.net.NoRouteToHostException)return true;}return false;}
+ private void saveVerifiedPc(Pc pc)throws JSONException{
+  String name=pcName(pc);List<String> obsolete=new ArrayList<>();Iterator<String> it=saved.keys();
+  while(it.hasNext()){String host=it.next();JSONObject obj=saved.optJSONObject(host);if(!host.equals(pc.host)&&obj!=null&&pc.token.equals(obj.optString("token"))){name=obj.optString("name",name);obsolete.add(host);}}
+  for(String host:obsolete)saved.remove(host);
+  saved.put(pc.host,pc.json().put("name",name));persist();
+ }
+ private void connect(Pc pc,int attempt){stopMonitor();int seq=++generation;'''),
+('String name=pcName(pc);saved.put(pc.host,pc.json().put("name",name));persist();','saveVerifiedPc(pc);'),
+('body.addView(button("Riprova",()->connect(pc)));body.addView(button("Torna alle postazioni",this::showHome));','''body.addView(button("Riprova",()->connect(pc)));body.addView(button("Torna alle postazioni",this::showHome));if(temporaryNetworkFailure(e)&&attempt<3&&foreground){int wait=5000*(1<<attempt);status.append("\\nNuovo tentativo automatico tra "+(wait/1000)+" secondi.");monitor.postDelayed(()->{if(foreground&&!isFinishing()&&seq==generation&&active==pc&&!verified)connect(pc,attempt+1);},wait);}'''),
+('WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);','WebSettings s=web.getSettings();s.setUserAgentString(s.getUserAgentString()+" PatenteStudioAndroid/1.0.3");s.setJavaScriptEnabled(true);'),
+('else vault.write(req.getJSONObject("state"));response.put("ok",true);','else{JSONObject snapshot=req.getJSONObject("state");vault.write(snapshot);response.put("empty",snapshot.isNull("draft")&&snapshot.getJSONArray("pending").length()==0);}response.put("ok",true);'),
+('if(sender==web&&active==pc&&verified&&!isFinishing())try{reply.postMessage(response.toString());}','if(sender==web&&active==pc&&verified&&!isFinishing())try{if(response.optBoolean("ok")&&response.optBoolean("empty")&&chooser==null&&photoFile!=null){photoFile.delete();photoFile=null;photoUri=null;}reply.postMessage(response.toString());}')
+])
+print("Bounded reconnect and post-receipt capture cleanup prepared")

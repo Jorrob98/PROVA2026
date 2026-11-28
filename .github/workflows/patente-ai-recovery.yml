@@ -57,6 +57,25 @@ jobs:
           curl --fail --location --retry 2 --max-time 120 https://storage.googleapis.com/mediapipe-assets/portrait.jpg -o recovery/portrait.jpg
           npm install --no-save --ignore-scripts playwright@1.51.1
           npx playwright install --with-deps chromium
+          # Extract only the existing public 0.8.8 executable's local-photo.js.
+          # The rebuilt private source is never uploaded to this repository.
+          python3 - <<'PY'
+          import hashlib,struct,pathlib
+          b=pathlib.Path('recovery/reference-088.exe').read_bytes()
+          assert hashlib.sha256(b).hexdigest()=='dd20110d3899d49519d0b7cfd92c133f8500f937e36ddf2fb5f9bc906ff71b62'
+          pe=struct.unpack_from('<I',b,60)[0];n=struct.unpack_from('<H',b,pe+6)[0];opt=struct.unpack_from('<H',b,pe+20)[0];base=struct.unpack_from('<Q',b,pe+48)[0]
+          sections=[]
+          for i in range(n):
+              p=pe+24+opt+i*40;_,vs,va,rs,rp=struct.unpack_from('<8sIIII',b,p);sections.append((base+va,rp,rs))
+          def data(a,s):
+              for v,p,l in sections:
+                  if v<=a and a+s<=v+l:return b[p+a-v:p+a-v+s]
+              raise ValueError('bad PE range')
+          off=0x4bc058+5*48;a,n,d,z=struct.unpack_from('<QQQQ',b,off)
+          assert data(a,n)==b'web/local-photo.js'
+          content=data(d,z);assert bytes(x^255 for x in hashlib.sha256(content).digest()[:16])==b[off+32:off+48]
+          pathlib.Path('recovery/original-local-photo.js').write_bytes(content)
+          PY
           cat > inference.cjs <<'JS'
           const {chromium}=require('playwright');const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
           (async()=>{
@@ -74,7 +93,7 @@ jobs:
             try{
               browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});const page=await browser.newPage();const attempted=[];
               await page.route('**/*',r=>{if(r.request().url().startsWith(origin+'/'))return r.continue();attempted.push(r.request().url());return r.abort()});
-              await page.goto(origin+'/');
+              await page.goto(origin+'/');await page.addScriptTag({url:origin+'/original-local-photo.js'});
               const result=await page.evaluate(async()=>{
                 const lib=await import('/ai/vision_bundle.mjs'),files=await lib.FilesetResolver.forVisionTasks('/ai/wasm');
                 const image=new Image();image.src='/portrait.jpg';await image.decode();
@@ -92,7 +111,7 @@ jobs:
                     output={faces,maskCount:masks.length,width:bg.width,height:bg.height,foreground,background,whitened};
                   }finally{r.close?.()}
                 }finally{seg.close()}
-                return output;
+                const recovered=await window.PSLocalPhoto.advanced(c,null,'standard');if(recovered.engine!=='ai'||!(recovered.removed>0.018&&recovered.removed<0.85))throw Error('Recovered compositor rejected fixture');let changed=0;const before=ctx.getImageData(0,0,c.width,c.height).data,after=recovered.canvas.getContext('2d').getImageData(0,0,c.width,c.height).data;for(let i=0;i<before.length;i+=4){if(after[i]!==before[i]||after[i+1]!==before[i+1]||after[i+2]!==before[i+2])changed++}if(!changed)throw Error('Compositor did not change image');return {...output,originalCompositor:{engine:recovered.engine,removed:recovered.removed,changedPixels:changed,source:'embedded 0.8.8 local-photo.js'}};
               });
               if(result.faces<1||result.maskCount!==6||!result.foreground||!result.background||!result.whitened||attempted.length)throw Error(JSON.stringify({result,attempted}));
               fs.writeFileSync('recovery/provenance/offline-inference.json',JSON.stringify({...result,externalRequests:attempted.length,fixture:'https://storage.googleapis.com/mediapipe-assets/portrait.jpg'},null,2));console.log(result);
@@ -100,7 +119,7 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
           node inference.cjs
-          rm recovery/portrait.jpg
+          rm recovery/portrait.jpg recovery/original-local-photo.js
       - uses: actions/upload-artifact@v4
         with:
           name: patente-ai-recovery-reference

@@ -28,7 +28,7 @@ jobs:
           python3 patente-studio-android/prepare-1.0.2.py /tmp/psandroid
           export ANDROID_HOME=/usr/local/lib/android/sdk
           cd /tmp/psandroid
-          gradle :app:assembleRelease :app:lintRelease --no-daemon
+          gradle :app:assembleRelease :app:lintRelease --no-daemon || { cat app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt app/build/reports/lint-results-release.txt 2>/dev/null || true; exit 1; }
           cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/android-out/
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" /tmp/android-out/
           rm source.zip

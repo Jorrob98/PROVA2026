@@ -1,0 +1,48 @@
+name: Smoke test recovered photographic AI models
+on:
+  push:
+    branches: [patente-tablet-1.0.3]
+    paths: ['.github/workflows/patente-studio-ai-smoke.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: pinned-mediapipe-assets
+          run-id: 46132248456
+          github-token: ${{ github.token }}
+          path: /tmp/ps-ai
+      - name: Run real inference on a generated blank canvas
+        run: |
+          cd /tmp/ps-ai
+          npm install --no-audit --no-fund --ignore-scripts playwright@1.51.1
+          npx playwright install --with-deps chromium
+          cat > web/index.html <<'HTML'
+          <!doctype html><meta charset="utf-8"><canvas id="photo" width="260" height="315"></canvas><script type="module" src="/smoke.mjs"></script>
+          HTML
+          cat > web/smoke.mjs <<'JS'
+          import {FilesetResolver,FaceDetector,ImageSegmenter} from '/ai/vision_bundle.mjs';
+          window.runSmoke=async()=>{
+            const fs=await FilesetResolver.forVisionTasks('/ai/wasm');
+            const face=await FaceDetector.createFromOptions(fs,{baseOptions:{modelAssetPath:'/ai/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'IMAGE'});
+            const seg=await ImageSegmenter.createFromOptions(fs,{baseOptions:{modelAssetPath:'/ai/selfie_multiclass_256x256.tflite',delegate:'CPU'},runningMode:'IMAGE',outputConfidenceMasks:true,outputCategoryMask:false});
+            const c=document.getElementById('photo');const ctx=c.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,c.width,c.height);
+            const detections=face.detect(c).detections.length;
+            const r=seg.segment(c);const masks=r.confidenceMasks.map(m=>({width:m.width,height:m.height,finite:m.getAsFloat32Array().every(Number.isFinite)}));
+            r.close();face.close();seg.close();
+            return {detections,masks};
+          };
+          JS
+          python3 -m http.server 8765 --directory web >/tmp/ps-ai-http.log 2>&1 &
+          cat > smoke.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});try{const p=await browser.newPage();p.on('pageerror',e=>console.error(e));await p.goto('http://127.0.0.1:8765');await p.waitForFunction(()=>typeof window.runSmoke==='function');const r=await p.evaluate(()=>window.runSmoke());console.log(JSON.stringify(r));if(r.detections!==0||r.masks.length!==6||r.masks.some(m=>!m.finite||m.width<1||m.height<1))throw Error('Incorrect model output');}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node smoke.cjs

@@ -1,0 +1,31 @@
+name: Export Windows 0.8.8 reference for source reconciliation
+on:
+  push:
+    branches: [patente-tablet-1.0.3]
+    paths: ['.github/workflows/patente-studio-windows-reference.yml']
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Verify published file
+        run: |
+          cd patente-studio-updates
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          m=json.loads(pathlib.Path('update.json').read_text())
+          assert m['version']=='0.8.8'
+          f=pathlib.Path(m['file'])
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==m['sha256']
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-088-reference
+          path: |
+            patente-studio-updates/PatenteStudio-Originale-LAN-0.8.8-Windows.exe
+            patente-studio-updates/update.json
+          retention-days: 7

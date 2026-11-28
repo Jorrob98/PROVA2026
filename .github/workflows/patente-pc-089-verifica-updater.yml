@@ -1,0 +1,36 @@
+name: Patente Studio PC 0.8.8 to 0.8.9 Windows integration (isolated)
+on:
+  push:
+    branches: [patente-pc-089-verifica-updater]
+    paths: ['patente-pc-089-test/**','.github/workflows/patente-pc-089-verifica-updater.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  upgrade:
+    runs-on: windows-2022
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: patente-ai-recovery-reference
+          path: recovery
+          run-id: 46135177491
+          github-token: ${{ github.token }}
+      - name: Run existing signed updater against isolated local feed
+        shell: pwsh
+        run: |
+          python -m pip install Pillow==11.1.0
+          python patente-pc-089-test/windows-test.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: patente-pc-089-windows-report
+          path: windows-update-report.json
+          retention-days: 7
+          if-no-files-found: warn

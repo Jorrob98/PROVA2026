@@ -1,0 +1,41 @@
+name: Build Patente Studio Tablet 1.0.3
+on:
+  push:
+    branches: [patente-tablet-1.0.3]
+    paths:
+      - 'patente-studio-android/prepare-1.0.3.py'
+      - '.github/workflows/patente-studio-android-103.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Prepare and compile
+        run: |
+          set -eu
+          mkdir -p /tmp/psandroid /tmp/android-out
+          base64 -d patente-studio-android/source-1.0.1.b64 >/tmp/psandroid/source.zip
+          unzip -q /tmp/psandroid/source.zip -d /tmp/psandroid
+          python3 patente-studio-android/prepare-1.0.2.py /tmp/psandroid
+          python3 patente-studio-android/prepare-1.0.3.py /tmp/psandroid
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          cd /tmp/psandroid
+          gradle :app:assembleRelease :app:lintRelease --no-daemon || { cat app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt app/build/reports/lint-results-release.txt 2>/dev/null || true; exit 1; }
+          cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/android-out/
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" /tmp/android-out/
+          rm source.zip
+          zip -qr /tmp/android-out/source-1.0.3.zip app/src app/build.gradle build.gradle settings.gradle gradle.properties
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-103-signing-kit
+          path: /tmp/android-out/
+          retention-days: 7

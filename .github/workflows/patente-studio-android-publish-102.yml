@@ -1,0 +1,77 @@
+name: Publish verified Patente Studio Tablet 1.0.2
+on:
+  push:
+    branches: [patente-tablet-1.0.2]
+    paths: ['.github/workflows/patente-studio-android-publish-102.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-102-signing-kit
+          run-id: 46129318143
+          github-token: ${{ github.token }}
+          path: /tmp/android-kit
+      - name: Reassemble exactly the locally signed APK
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, pathlib, struct, zlib
+          p=pathlib.Path('patente-studio-android')
+          m=json.loads((p/'publish-1.0.2.json').read_text())
+          assert m['version']=='1.0.2' and m['versionCode']==3 and m['buildRun']==46129318143
+          b=pathlib.Path('/tmp/android-kit/app-release-unsigned.apk').read_bytes()
+          assert hashlib.sha256(b).hexdigest()==m['unsignedSha256']
+          e=b.rfind(b'PK\x05\x06')
+          c=struct.unpack_from('<I',b,e+16)[0]
+          block=zlib.decompress(base64.b64decode(m['block'],validate=True))
+          assert block[-16:]==b'APK Sig Block 42'
+          signed=b[:c]+block+b[c:e+16]+struct.pack('<I',c+len(block))+b[e+20:]
+          assert len(signed)==m['size'] and hashlib.sha256(signed).hexdigest()==m['sha256']
+          pathlib.Path('/tmp/android-kit/PatenteStudio-Tablet-1.0.2.apk').write_bytes(signed)
+          PY
+      - name: Verify APK, original certificate and release identity
+        run: |
+          set -eu
+          git fetch origin main
+          git show origin/main:patente-studio-android/PatenteStudio-Tablet-1.0.1.apk >/tmp/android-kit/old.apk
+          git show origin/main:patente-studio-android/android-update.json >/tmp/android-kit/old.json
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          m=json.loads(pathlib.Path('/tmp/android-kit/old.json').read_text())
+          assert m['version']=='1.0.1' and m['versionCode']==2
+          assert hashlib.sha256(pathlib.Path('/tmp/android-kit/old.apk').read_bytes()).hexdigest()==m['sha256']
+          PY
+          for apk in old.apk PatenteStudio-Tablet-1.0.2.apk; do
+            java -jar /tmp/android-kit/apksigner.jar verify --print-certs /tmp/android-kit/$apk > /tmp/$apk.cert
+            grep -Fx 'Signer #1 certificate SHA-256 digest: 3f31e96ace4144ce33391c06444ecbb93c36084dcd0e1fd4c0ce7f2f223ad54b' /tmp/$apk.cert
+          done
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/android-kit/PatenteStudio-Tablet-1.0.2.apk | grep -F "package: name='it.jorrob.patentetab' versionCode='3' versionName='1.0.2'"
+      - name: Publish APK and index atomically, archive source
+        run: |
+          set -eu
+          git worktree add --detach /tmp/release-main origin/main
+          cp /tmp/android-kit/PatenteStudio-Tablet-1.0.2.apk /tmp/release-main/patente-studio-android/
+          cp /tmp/android-kit/source-1.0.2.zip /tmp/release-main/patente-studio-android/
+          cd /tmp/release-main
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path('patente-studio-android')
+          f=p/'PatenteStudio-Tablet-1.0.2.apk'
+          b=f.read_bytes()
+          assert hashlib.sha256(b).hexdigest()=='5a80fa9045d6e45d97fc125578edeed0f7f608e9a6e87d2a657bf0fff593d0d3'
+          (p/'android-update.json').write_text(json.dumps(dict(version='1.0.2',versionCode=3,file=f.name,sha256=hashlib.sha256(b).hexdigest(),size=len(b)),indent=2)+'\n')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add patente-studio-android/PatenteStudio-Tablet-1.0.2.apk patente-studio-android/android-update.json patente-studio-android/source-1.0.2.zip
+          git commit -m "Publish signed Patente Studio Tablet 1.0.2"
+          git push origin HEAD:main

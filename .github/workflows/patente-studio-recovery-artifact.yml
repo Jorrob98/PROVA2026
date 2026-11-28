@@ -1,0 +1,17 @@
+name: Export existing encrypted Android signing backup
+on:
+  push:
+    branches: [patente-tablet-1.0.3]
+    paths: ['.github/workflows/patente-studio-recovery-artifact.yml']
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-encrypted-recovery-only
+          path: patente-studio-android/signing-backup.encrypted.json
+          retention-days: 1

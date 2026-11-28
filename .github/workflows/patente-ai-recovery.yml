@@ -1,0 +1,58 @@
+name: Recover upstream Patente Studio AI assets (no release)
+on:
+  push:
+    branches: [patente-ai-recovery]
+    paths: ['.github/workflows/patente-ai-recovery.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch official pinned npm package and models
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p recovery/ai/wasm recovery/provenance
+          npm view @mediapipe/tasks-vision@0.10.21 dist --json --registry=https://registry.npmjs.org > recovery/provenance/npm-dist.json
+          npm pack @mediapipe/tasks-vision@0.10.21 --ignore-scripts --registry=https://registry.npmjs.org --json > recovery/provenance/npm-pack.json
+          tar -xzf mediapipe-tasks-vision-0.10.21.tgz
+          cp package/vision_bundle.mjs recovery/ai/
+          for f in vision_wasm_internal.js vision_wasm_internal.wasm vision_wasm_nosimd_internal.js vision_wasm_nosimd_internal.wasm; do cp "package/wasm/$f" recovery/ai/wasm/; done
+          cp package/package.json recovery/provenance/
+          find package -maxdepth 1 -iname 'license*' -exec cp '{}' recovery/provenance/ \;
+          curl --fail --location --retry 2 --max-time 120 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite' --output recovery/ai/blaze_face_short_range.tflite
+          curl --fail --location --retry 2 --max-time 120 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite' --output recovery/ai/selfie_multiclass_256x256.tflite
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path('recovery/ai')
+          files=sorted(x for x in p.rglob('*') if x.is_file())
+          assert len(files)==7
+          hashes={}
+          for f in files:
+              b=f.read_bytes()
+              if f.suffix=='.wasm': assert b.startswith(b'\x00asm')
+              if f.suffix=='.tflite': assert b[4:8]==b'TFL3'
+              hashes[str(f.relative_to(p))]=hashlib.sha256(b).hexdigest()
+          pathlib.Path('recovery/provenance/sha256-observed.json').write_text(json.dumps(hashes,indent=2)+'\n')
+          root=pathlib.Path('patente-studio-updates')
+          m=json.loads((root/'update.json').read_text())
+          assert m['version']=='0.8.8'
+          src=root/m['file']
+          assert hashlib.sha256(src.read_bytes()).hexdigest()==m['sha256']
+          import shutil
+          shutil.copyfile(src,'recovery/reference-088.exe')
+          shutil.copyfile(root/'update.json','recovery/provenance/reference-update.json')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patente-ai-recovery-reference
+          path: recovery/
+          retention-days: 7
+          if-no-files-found: error

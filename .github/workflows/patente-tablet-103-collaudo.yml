@@ -18,14 +18,43 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Extract exact published 1.0.2 source for inspection
+      - name: Patch actual 1.0.2 direct HTTPS app and build debug candidate
+        shell: bash
         run: |
-          mkdir -p /tmp/psout
-          unzip -q patente-studio-android/source-1.0.2.zip -d /tmp/psout
-          find /tmp/psout -type f | sort
+          set -euo pipefail
+          mkdir -p /tmp/pssrc /tmp/psout
+          unzip -q patente-studio-android/source-1.0.2.zip -d /tmp/pssrc
+          cd /tmp/pssrc
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          def once(s,a,b):
+              assert s.count(a)==1,a
+              return s.replace(a,b,1)
+          f=Path('app/src/main/java/it/jorrob/patentetab/MainActivity.java')
+          old=f.read_bytes();s=old.decode()
+          s=once(s,' private int dp(int x)', ''' // Random install identifier: not a hardware fingerprint. Persist synchronously.
+           private String nativeDeviceId(){SharedPreferences p=getSharedPreferences("patente-device-identity",MODE_PRIVATE);String id=p.getString("id","");if(id.matches("[a-f0-9]{32}"))return id;id=UUID.randomUUID().toString().replace("-","");if(!p.edit().putString("id",id).commit())throw new IllegalStateException("Identificativo tablet non salvato");return id;}
+           private int dp(int x)''')
+          s=once(s,'web.loadUrl(pc.origin()+"/#pair="+pc.token);','try{web.loadUrl(pc.origin()+"/#pair="+pc.token+"&device="+nativeDeviceId()+"&client=android&version="+updates.version());}catch(IllegalStateException e){showHome();Toast.makeText(this,"Identificativo tablet non salvato. Riprova.",Toast.LENGTH_LONG).show();}')
+          # Debug build: never prompt to install a production APK.
+          s=once(s,'new Handler(Looper.getMainLooper()).postDelayed(()->{if(!isFinishing()&&active==null)updates.check(true,()->active==null&&!isFinishing());},1200);','')
+          s=once(s,'panel.addView(button("Controlla aggiornamenti",()->updates.check()));','panel.addView(label("Build di collaudo: aggiornamenti disattivati.",14));')
+          f.write_text(s)
+          g=Path('app/build.gradle');s=g.read_text()
+          s=once(s,"applicationId 'it.jorrob.patentetab';","applicationId 'it.jorrob.patentetab.collaudo';")
+          s=once(s,"versionCode 3; versionName '1.0.2'","versionCode 4; versionName '1.0.3'")
+          g.write_text(s)
+          manifest=Path('app/src/main/AndroidManifest.xml');s=manifest.read_text();manifest.write_text(once(s,'android:label="Patente Studio"','android:label="Patente Studio COLLAUDO"'))
+          Path('/tmp/psout/source-provenance.json').write_text(json.dumps({'base':'source-1.0.2.zip','original_MainActivity_sha256':hashlib.sha256(old).hexdigest(),'patched_MainActivity_sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'test_application_id':'it.jorrob.patentetab.collaudo','release':False,'transport':'original direct HTTPS pin and SAN checks unchanged'},indent=2))
+          PY
+          gradle :app:assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/psout/PatenteStudio-Tablet-1.0.3-COLLAUDO.apk
+          sha256sum /tmp/psout/*.apk > /tmp/psout/APK-SHA256.txt
+          zip -q -r /tmp/psout/source-patched.zip app/src app/build.gradle build.gradle settings.gradle gradle.properties
       - uses: actions/upload-artifact@v4
         with:
-          name: tablet-102-exact-source
+          name: tablet-103-isolated-debug
           path: /tmp/psout
           retention-days: 7
           if-no-files-found: error

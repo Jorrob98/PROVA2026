@@ -1,4 +1,4 @@
-import base64, hashlib, json, pathlib, zlib, os, shutil, subprocess, time, urllib.request, urllib.error, ssl, socket, re, threading, functools, http.server, tempfile, uuid, io
+import http.client, base64, hashlib, json, pathlib, zlib, os, shutil, subprocess, time, urllib.request, urllib.error, ssl, socket, re, threading, functools, http.server, tempfile, uuid, io
 from PIL import Image, ImageDraw
 
 workspace=pathlib.Path.cwd()
@@ -63,6 +63,24 @@ def pinned_peer(pin):
     with socket.create_connection(('127.0.0.1',18886),timeout=5) as raw:
         with c.wrap_socket(raw,server_hostname='192.168.10.25') as tls:
             assert hashlib.sha256(tls.getpeercert(binary_form=True)).hexdigest()==pin
+def tablet_request(path,token=None,body=None):
+    # Same certificate and origin as the actual native 1.0.2 QR contract.
+    # Connect to the loopback test runner but use the advertised IP for SAN validation.
+    ctx=ssl.create_default_context(cafile=str(root/'certs'/'ca-per-tablet.crt'))
+    class LocalPinnedConnection(http.client.HTTPSConnection):
+        def connect(self):
+            raw=socket.create_connection(('127.0.0.1',18886),timeout=10)
+            self.sock=self._context.wrap_socket(raw,server_hostname='192.168.10.25')
+            assert hashlib.sha256(self.sock.getpeercert(binary_form=True)).hexdigest()==pin0
+    conn=LocalPinnedConnection('192.168.10.25',18886,context=ctx,timeout=10)
+    headers={'Origin':'https://192.168.10.25:18886'}
+    if token:headers['Authorization']='Bearer '+token
+    if body is not None:headers['Content-Type']='application/json'
+    try:
+        conn.request('GET' if body is None else 'POST',path,body=None if body is None else json.dumps(body).encode(),headers=headers)
+        resp=conn.getresponse();data=resp.read()
+        return resp.status,json.loads(data)
+    finally:conn.close()
 def pin_of(q):return re.search(r'&pin=([a-f0-9]{64})$',q['url']).group(1)
 def make_job():
     p=Image.new('RGB',(260,315),(240,240,240));d=ImageDraw.Draw(p);d.ellipse((64,45,196,250),fill=(160,120,100));d.ellipse((92,110,110,128),fill='black');d.ellipse((148,110,166,128),fill='black')
@@ -103,8 +121,20 @@ try:
     mark('configuration_archive_files_and_tablet_pin_preserved')
     # Existing credentials still work; exercise acquisition path after migration.
     job2=make_job();job2['name']='SECONDO'
-    call('/api/jobs',capture,job2)
+    assert tablet_request('/api/session',capture)[0]==200
+    assert tablet_request('/api/session','invalid-token')[0]==401
+    assert tablet_request('/api/config',capture)[0] in (401,403,404)
+    code=call('/api/lan/practice',admin,{'name':'SECONDO','surname':'COLLAUDO'})['code']
+    status,claimed=tablet_request('/api/lan/claim',capture,{'code':code})
+    assert status==200 and claimed['name']=='SECONDO' and claimed['surname']=='COLLAUDO'
+    assert tablet_request('/api/lan/claim',capture,{'code':code})[0]==400
+    device=uuid.uuid4().hex
+    assert tablet_request('/api/lan/heartbeat',capture,{'device':device})[0]==200
+    status,received=tablet_request('/api/jobs',capture,job2)
+    assert status==201
+    assert tablet_request('/api/jobs',capture,job2)[0] in (200,201)
     assert len(list(export.glob('*.jpg')))==4
+    mark('android_102_tls_pin_san_capture_claim_retry_and_access_control')
     mark('capture_after_update')
     assert any(digest(p)==digest(old) for p in target.parent.glob('PatenteStudio.exe.old-*'))
     mark('rollback_executable_preserved')

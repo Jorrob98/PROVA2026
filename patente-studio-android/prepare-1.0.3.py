@@ -95,3 +95,71 @@ p=root/'app/src/main/res/values/styles.xml'
 s=p.read_text(encoding='utf-8').replace('#0A6268','#23538E').replace('#0A4347','#153C70')
 p.write_text(s,encoding='utf-8')
 print("Additional tablet stability changes prepared")
+
+
+# Origin-scoped encrypted draft storage; used only by the coordinated PC web client.
+edit(root/'app/build.gradle',[("implementation 'androidx.core:core:1.13.1'","implementation 'androidx.core:core:1.13.1'\n implementation 'androidx.webkit:webkit:1.12.1'")])
+(java/'DraftVault.java').write_text('''package it.jorrob.patentetab;
+
+import android.content.Context;
+import android.util.AtomicFile;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Locale;
+import org.json.JSONObject;
+
+final class DraftVault {
+ private static final int MAX=12*1024*1024;
+ private final AtomicFile file;
+ private final String scope;
+ DraftVault(Context context,String token)throws Exception {
+  byte[] hash=MessageDigest.getInstance("SHA-256").digest(("patente-draft-v1:"+token).getBytes(StandardCharsets.UTF_8));
+  StringBuilder id=new StringBuilder();for(byte b:hash)id.append(String.format(Locale.ROOT,"%02x",b&255));
+  scope=id.toString();
+  File dir=new File(context.getNoBackupFilesDir(),"drafts");
+  if(!dir.isDirectory()&&!dir.mkdirs())throw new IOException("Draft storage unavailable");
+  file=new AtomicFile(new File(dir,scope+".enc"));
+ }
+ synchronized JSONObject read()throws Exception{
+  byte[] bytes;
+  try(InputStream in=file.openRead();ByteArrayOutputStream out=new ByteArrayOutputStream()){
+   byte[] buf=new byte[32768];int n;while((n=in.read(buf))!=-1){if(out.size()+n>MAX*2L)throw new IOException("Draft too large");out.write(buf,0,n);}bytes=out.toByteArray();
+  }catch(FileNotFoundException e){if(file.getBaseFile().exists()||new File(file.getBaseFile().getPath()+".bak").exists())throw e;return new JSONObject().put("schema",1).put("pending",new org.json.JSONArray()).put("draft",JSONObject.NULL);}
+  JSONObject envelope=new JSONObject(PcVault.decrypt(new String(bytes,StandardCharsets.UTF_8)));
+  if(!scope.equals(envelope.getString("scope")))throw new SecurityException("Draft scope mismatch");
+  return envelope.getJSONObject("state");
+ }
+ synchronized void write(JSONObject state)throws Exception{
+  if(state.getInt("schema")!=1||state.getJSONArray("pending").length()>9||!state.has("draft"))throw new IOException("Invalid draft");
+  byte[] plain=new JSONObject().put("scope",scope).put("state",state).toString().getBytes(StandardCharsets.UTF_8);
+  if(plain.length>MAX)throw new IOException("Draft too large");
+  byte[] data=PcVault.encrypt(new String(plain,StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8);
+  FileOutputStream out=null;try{out=file.startWrite();out.write(data);out.getFD().sync();file.finishWrite(out);}catch(Exception e){if(out!=null)file.failWrite(out);throw e;}
+ }
+}
+''',encoding='utf-8')
+p=java/'MainActivity.java'
+edit(p,[
+('private final java.util.concurrent.ExecutorService probes=java.util.concurrent.Executors.newFixedThreadPool(3);','private final java.util.concurrent.ExecutorService probes=java.util.concurrent.Executors.newFixedThreadPool(3);\n private final java.util.concurrent.ExecutorService draftIO=java.util.concurrent.Executors.newSingleThreadExecutor();'),
+('private void openWeb(Pc pc){body.removeAllViews();web=new WebView(this);','''private void bindDraftVault(WebView view,Pc pc){
+  if(!androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.WEB_MESSAGE_LISTENER))return;
+  try{
+   DraftVault vault=new DraftVault(this,pc.token);
+   androidx.webkit.WebViewCompat.addWebMessageListener(view,"PatenteDraft",Collections.singleton(pc.origin()),(sender,message,origin,mainFrame,reply)->{
+    if(!mainFrame||sender!=web||active!=pc||!verified||!sameOrigin(origin.toString(),pc)||isFinishing())return;
+    String raw=message.getData();if(raw==null||raw.length()>12*1024*1024)return;
+    try{JSONObject req=new JSONObject(raw);String id=req.getString("id"),op=req.getString("op");if(!id.matches("[A-Za-z0-9-]{1,80}")||(!"get".equals(op)&&!"put".equals(op)))return;
+     draftIO.execute(()->{JSONObject response=new JSONObject();try{response.put("id",id);if("get".equals(op))response.put("state",vault.read());else vault.write(req.getJSONObject("state"));response.put("ok",true);}catch(Exception e){try{response.put("id",id).put("ok",false).put("error","Archivio locale non disponibile");}catch(Exception ignored){}}
+      runOnUiThread(()->{if(sender==web&&active==pc&&verified&&!isFinishing())try{reply.postMessage(response.toString());}catch(Exception ignored){}});
+     });
+    }catch(Exception ignored){}
+   });
+  }catch(Exception e){Toast.makeText(this,"Recupero locale non disponibile. Verifica Android System WebView.",Toast.LENGTH_LONG).show();}
+ }
+ private void toggleDedicated(){try{ActivityManager manager=(ActivityManager)getSystemService(ACTIVITY_SERVICE);if(manager!=null&&manager.getLockTaskModeState()!=ActivityManager.LOCK_TASK_MODE_NONE){stopLockTask();return;}new AlertDialog.Builder(this).setTitle("Tablet dedicato").setMessage("Android può fissare Patente Studio sullo schermo. Segui le istruzioni del dispositivo per attivarlo e uscire.").setNegativeButton("Annulla",null).setPositiveButton("Attiva",(d,w)->{try{startLockTask();}catch(Exception e){Toast.makeText(this,"Blocco schermo non disponibile",Toast.LENGTH_LONG).show();}}).show();}catch(Exception e){Toast.makeText(this,"Blocco schermo non disponibile",Toast.LENGTH_LONG).show();}}
+ private void openWeb(Pc pc){body.removeAllViews();web=new WebView(this);bindDraftVault(web,pc);'''),
+('panel.addView(button("Diagnostica",this::diagnostics));','panel.addView(button("Diagnostica",this::diagnostics));panel.addView(button("Modalità tablet dedicato",this::toggleDedicated));'),
+('probes.shutdownNow();generation++;','probes.shutdownNow();draftIO.shutdown();generation++;')
+])
+print("Origin-restricted draft vault and Android screen pinning prepared")

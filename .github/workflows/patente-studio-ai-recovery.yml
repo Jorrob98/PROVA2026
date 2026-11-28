@@ -1,0 +1,57 @@
+name: Recover pinned MediaPipe photographic assets
+on:
+  push:
+    branches: [patente-tablet-1.0.3]
+    paths: ['.github/workflows/patente-studio-ai-recovery.yml']
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch official pinned resources and verify
+        run: |
+          set -eu
+          mkdir -p /tmp/ai-kit/web/ai/wasm
+          cd /tmp/ai-kit
+          npm view @mediapipe/tasks-vision@0.10.21 dist --json > npm-dist.json
+          npm pack @mediapipe/tasks-vision@0.10.21 --ignore-scripts --json > npm-pack.json
+          python3 - <<'PY'
+          import json,hashlib,base64,pathlib
+          d=json.loads(pathlib.Path('npm-dist.json').read_text())
+          p=json.loads(pathlib.Path('npm-pack.json').read_text())[0]
+          b=pathlib.Path(p['filename']).read_bytes()
+          assert d['integrity']=='sha512-'+base64.b64encode(hashlib.sha512(b).digest()).decode()
+          PY
+          tar -xzf mediapipe-tasks-vision-0.10.21.tgz
+          cp package/vision_bundle.mjs web/ai/
+          cp package/wasm/vision_wasm_internal.{js,wasm} package/wasm/vision_wasm_nosimd_internal.{js,wasm} web/ai/wasm/
+          curl -fL --retry 3 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite' -o web/ai/blaze_face_short_range.tflite
+          curl -fL --retry 3 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite' -o web/ai/selfie_multiclass_256x256.tflite
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path('web/ai')
+          expected={'blaze_face_short_range.tflite':'b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f','selfie_multiclass_256x256.tflite':'c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0'}
+          for k,v in expected.items():
+              b=(p/k).read_bytes()
+              assert b[4:8]==b'TFL3' and hashlib.sha256(b).hexdigest()==v,k
+          files={str(f.relative_to(p)):hashlib.sha256(f.read_bytes()).hexdigest() for f in p.rglob('*') if f.is_file()}
+          assert len(files)==7
+          pathlib.Path('ai-hashes.json').write_text(json.dumps(files,indent=2)+'\n')
+          print(json.dumps(files,indent=2))
+          PY
+          find package -maxdepth 1 -iname '*license*' -exec cp {} . \;
+          cp package/package.json package-metadata.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pinned-mediapipe-assets
+          path: |
+            /tmp/ai-kit/web
+            /tmp/ai-kit/ai-hashes.json
+            /tmp/ai-kit/npm-dist.json
+            /tmp/ai-kit/package-metadata.json
+            /tmp/ai-kit/*LICENSE*
+          retention-days: 7

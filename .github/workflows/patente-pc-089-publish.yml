@@ -1,0 +1,106 @@
+name: Publish verified Patente Studio PC 0.8.9
+on:
+  push:
+    branches: [patente-pc-089-verifica-updater]
+    paths: ['.github/workflows/patente-pc-089-publish.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: patente-ai-recovery-reference
+          path: recovery
+          run-id: 46135177491
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: patente-pc-089-windows-report
+          path: windows-report
+          run-id: 46139860341
+          github-token: ${{ github.token }}
+      - name: Require successful Windows integration for the exact binary and verify release signature
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/Jorrob98/PROVA2026/actions/runs/46139860341 > /tmp/ps-run.json
+          python -m pip install cryptography==44.0.2
+          python - <<'PY'
+          import base64,hashlib,json,pathlib,zlib
+          from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+          r=json.loads(pathlib.Path('/tmp/ps-run.json').read_text())
+          assert r['conclusion']=='success' and r['head_sha']=='6d5666ed9f5ff7fea0acb20496a4443be2753ade'
+          report=json.loads(pathlib.Path('windows-report/windows-update-report.json').read_text())
+          stage=pathlib.Path('patente-pc-089-test')
+          meta=json.loads((stage/'skeleton.json').read_text())
+          expected='3a4d2fd1680f534a60fb1c697930198e757772506736145fdc2325f9087cf5aa'
+          checks=['original_088_config_archive_qr_and_capture','original_088_sees_signed_089','original_088_installer_requested','actual_windows_update_and_edge_window','configuration_archive_files_and_tablet_pin_preserved','android_102_tls_pin_san_capture_claim_retry_and_access_control','capture_after_update','rollback_executable_preserved','no_duplicate_update']
+          assert report['passed'] is True and report['candidate_sha256']==expected and report['candidate_size']==43641344
+          assert all(report['checks'][k] is True for k in checks)
+          data=bytearray(zlib.decompress(base64.b64decode(''.join(f.read_text().strip() for f in sorted(stage.glob('part-*.b64'))),validate=True)))
+          for x in meta['ops']:
+              b=(pathlib.Path('recovery')/x['path']).read_bytes()
+              assert len(b)==x['size'] and hashlib.sha256(b).hexdigest()==x['sha256']
+              assert not any(data[x['offset']:x['offset']+x['size']])
+              data[x['offset']:x['offset']+x['size']]=b
+          assert len(data)==43641344 and data[:2]==b'MZ' and hashlib.sha256(data).hexdigest()==expected==meta['sha256']
+          m={
+            'version':'0.8.9',
+            'file':'PatenteStudio-Originale-LAN-0.8.9-Windows.exe',
+            'sha256':expected,
+            'notes':'Nuova grafica Patente Studio, informazioni tecniche nelle impostazioni, motore fotografico offline recuperato, salvataggi protetti e aggiornamenti migliorati.',
+            'url':'https://raw.githubusercontent.com/Jorrob98/PROVA2026/main/patente-studio-updates/PatenteStudio-Originale-LAN-0.8.9-Windows.exe',
+            'signature':'zKn9qajIjIBNQyoAso/+RTFhwX+SzK36mA1fpeQO6Jc9SVphiJLzo9VNWl+YD66cqbAda+5PxcMkpYDeT6j2AQ=='
+          }
+          pub=Ed25519PublicKey.from_public_bytes(base64.b64decode('YJzYAbK9Du0eXUUFvFxNzbDfsjO0FnXtQldOLPCUhHg='))
+          msg=('\n'.join(m[k] for k in ['version','file','sha256','url','notes'])+'\n').encode()
+          pub.verify(base64.b64decode(m['signature']),msg)
+          root=pathlib.Path('/tmp/ps-release-089');root.mkdir()
+          (root/m['file']).write_bytes(data)
+          (root/'update.json').write_text(json.dumps(m,indent=2)+'\n')
+          print('Exact tested Windows 0.8.9; signature and payload verified; Android HTTPS protocol verified, physical device not asserted.')
+          PY
+      - name: Atomically publish verified executable and index on main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout --detach origin/main
+          python - <<'PY'
+          import pathlib,json,hashlib
+          p=pathlib.Path('patente-studio-updates')
+          m=json.loads((p/'update.json').read_text())
+          assert m['version']=='0.8.8' and m['sha256']=='dd20110d3899d49519d0b7cfd92c133f8500f937e36ddf2fb5f9bc906ff71b62'
+          assert hashlib.sha256((p/m['file']).read_bytes()).hexdigest()==m['sha256']
+          assert not (p/'PatenteStudio-Originale-LAN-0.8.9-Windows.exe').exists()
+          PY
+          cp /tmp/ps-release-089/* patente-studio-updates/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add patente-studio-updates/PatenteStudio-Originale-LAN-0.8.9-Windows.exe patente-studio-updates/update.json
+          git commit -m "Publish signed Patente Studio PC 0.8.9 after Windows upgrade verification"
+          git push origin HEAD:main
+          git rev-parse HEAD
+      - name: Verify executable and index on remote main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git show origin/main:patente-studio-updates/update.json >/tmp/ps-live-update.json
+          git show origin/main:patente-studio-updates/PatenteStudio-Originale-LAN-0.8.9-Windows.exe >/tmp/ps-live.exe
+          python - <<'PY'
+          import pathlib,hashlib,json
+          m=json.loads(pathlib.Path('/tmp/ps-live-update.json').read_text())
+          assert m['version']=='0.8.9' and m==json.loads(pathlib.Path('/tmp/ps-release-089/update.json').read_text())
+          assert hashlib.sha256(pathlib.Path('/tmp/ps-live.exe').read_bytes()).hexdigest()==m['sha256']
+          print('Official main channel now verified: 0.8.9')
+          PY

@@ -1,0 +1,27 @@
+name: Verify live Patente Studio PC 0.8.9 update URL
+on:
+  push:
+    branches: [patente-pc-089-verifica-updater]
+    paths: ['.github/workflows/patente-pc-089-verify-live.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Fetch exactly the URL used by the installed application
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 30 'https://raw.githubusercontent.com/Jorrob98/PROVA2026/main/patente-studio-updates/update.json' -o update.json
+          python3 - <<'PY'
+          import json,pathlib,subprocess,hashlib
+          m=json.loads(pathlib.Path('update.json').read_text())
+          assert m['version']=='0.8.9'
+          assert m['sha256']=='3a4d2fd1680f534a60fb1c697930198e757772506736145fdc2325f9087cf5aa'
+          assert m['url']=='https://raw.githubusercontent.com/Jorrob98/PROVA2026/main/patente-studio-updates/PatenteStudio-Originale-LAN-0.8.9-Windows.exe'
+          subprocess.run(['curl','--fail','--location','--retry','2','--max-time','90',m['url'],'-o','release.exe'],check=True)
+          b=pathlib.Path('release.exe').read_bytes()
+          assert len(b)==43641344 and hashlib.sha256(b).hexdigest()==m['sha256']
+          print('LIVE: version 0.8.9 and 43,641,344-byte EXE verified at the exact app URL')
+          PY
